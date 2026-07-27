@@ -77,8 +77,15 @@ Registro scelte tecniche con motivazioni.
   **WiFi 13.8 Mbit/s → consegna ~11 dei 30 fps prodotti; USB 36.8 Mbit/s → li consegna tutti.**
   Il cavo satura quello che il server produce. Nell'app, via USB: 30.8 fps a risoluzione nativa
   1600×900 con qualità 85, contro 19.3 fps a 720p/q60 via WiFi.
-- **Costo:** zero lato server — non passa dalla rete, quindi niente firewall e niente urlacl.
-  Richiede però il **debug USB attivo**: è una funzione da sviluppatore, non qualcosa che si
+- **Costo:** zero lato server — non passa dalla rete, quindi **niente firewall e niente urlacl**,
+  verificato eseguendo il server su una porta senza prenotazione. Perché valesse davvero è servita
+  una correzione: il ripiego senza urlacl registrava solo `http://localhost:PORTA/`, e HTTP.sys
+  smista confrontando l'hostname **testuale** dell'header `Host`, non l'indirizzo risolto — quindi
+  la richiesta del tablet a `http://127.0.0.1:PORTA/` riceveva `400 Invalid Hostname`. Ora vengono
+  registrati entrambi i prefissi.
+- **Funziona completamente offline:** verificato spegnendo la WiFi del tablet — 30.6 fps invariati,
+  mentre lo stesso server via IP di LAN diventava irraggiungibile.
+- **Richiede però il debug USB attivo:** è una funzione da sviluppatore, non qualcosa che si
   possa chiedere a un utente qualsiasi.
 - **Alternative:** USB tethering inverso — richiede configurazione di rete sul dispositivo,
   molto più invasivo per lo stesso risultato.

@@ -48,8 +48,9 @@ public sealed class MjpegServer : IDisposable
         {
             Console.WriteLine($"""
                 [server] Bind su http://+:{_options.Port}/ negato da Windows (access denied).
-                         Ripiego su localhost: il test dal browser del PC funziona, quello dal
-                         telefono no. Per sbloccarlo, una volta sola da terminale amministratore:
+                         Resta raggiungibile da questo PC e dal cavo USB (adb reverse), ma non
+                         dalla rete. Per sbloccare anche la WiFi, una volta sola da terminale
+                         amministratore:
 
                            netsh http add urlacl url=http://+:{_options.Port}/ user={Environment.UserDomainName}\{Environment.UserName}
 
@@ -61,7 +62,14 @@ public sealed class MjpegServer : IDisposable
         // serve un'istanza nuova, non basta cambiare i prefissi.
         _listener.Close();
         _listener = new HttpListener();
+
+        // Servono entrambi i prefissi. HTTP.sys smista le richieste confrontando l'hostname
+        // testuale dell'header Host, non l'indirizzo risolto: "localhost" e "127.0.0.1" sono
+        // due nomi distinti. Con il solo "localhost", una richiesta a http://127.0.0.1:PORTA/
+        // riceve un 400 "Invalid Hostname" — ed e' esattamente quello che chiede il tablet
+        // collegato via adb reverse.
         _listener.Prefixes.Add($"http://localhost:{_options.Port}/");
+        _listener.Prefixes.Add($"http://127.0.0.1:{_options.Port}/");
         _listener.Start();
         BoundToAllInterfaces = false;
     }
