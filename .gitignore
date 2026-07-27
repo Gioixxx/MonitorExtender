@@ -1,0 +1,20 @@
+ralph/run-state.json
+
+.claude/memory-sync.log
+
+.claude/memory/consolidation-report.md
+
+.ralph-worktrees/
+
+.claude/libs-ext/
+
+# Junction verso il clone condiviso ~/.claude/claude-libs, che e' un repository git
+# a se'. Ricreata da install.ps1/reconcile.ps1 a partire da workspace.json: versionarla
+# qui significherebbe committare un gitlink verso un percorso che esiste solo su
+# questa macchina.
+.claude/libs/
+
+# .NET
+bin/
+obj/
+*.user

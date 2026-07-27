@@ -1,0 +1,23 @@
+{
+    "name":  "MonitorExtender",
+    "kit":  "custom",
+    "stack":  "dotnet",
+    "claudeLibsVersion":  "1.30.0",
+    "buildCommand":  "dotnet build",
+    "testCommand":  "dotnet test",
+    "githubRepo":  "Gioixxx/MonitorExtender",
+    "createdAt":  "2026-07-27",
+    "features":  {
+                     "memoryOllama":  true,
+                     "libraryRouter":  true,
+                     "enforcementHooks":  true
+                 },
+    "modules":  [
+                    "arch/clean-arch.md",
+                    "arch/api-design.md",
+                    "stacks/dotnet.md",
+                    "snippets/dotnet-patterns.md",
+                    "workflows/iterative-dev.md",
+                    "workflows/testing.md"
+                ]
+}

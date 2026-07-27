@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "model": "qwen3-coder:30b",
+  "ollamaUrl": "http://localhost:11434",
+  "files": {
+    "sprint": true,
+    "techDebt": true
+  },
+  "logFile": ".claude/memory-sync.log",
+  "maxLogLines": 500,
+  "consolidate": {
+    "enabled": false,
+    "time": "03:00",
+    "model": "qwen3-coder:30b",
+    "sections": {
+      "consolidation": true,
+      "orphans": true
+    }
+  }
+}
