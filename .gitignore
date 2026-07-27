@@ -18,3 +18,6 @@ ralph/run-state.json
 bin/
 obj/
 *.user
+
+# Backup generati dagli hook della memoria
+*.bak
