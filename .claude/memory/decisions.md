@@ -68,6 +68,22 @@ Registro scelte tecniche con motivazioni.
 - **Alternative:** Java — nessun vantaggio tecnico qui, solo familiarità.
 - **Impatto:** progetto Android (Fase 3).
 
+### Collegamento via cavo USB con `adb reverse`
+- **Data:** 2026-07-27
+- **Decisione:** oltre alla WiFi, il tablet può collegarsi via USB. `adb reverse tcp:8080 tcp:8080`
+  (in `tools/usb-link.ps1`) inoltra la porta lungo il cavo; l'app vede il server su `127.0.0.1`.
+  `Discovery.findFirst()` prova **prima** il cavo e ripiega sul broadcast UDP.
+- **Perché:** misurato sullo stesso stream (900p, 30 fps, q85, 150 KB/frame), un client per volta:
+  **WiFi 13.8 Mbit/s → consegna ~11 dei 30 fps prodotti; USB 36.8 Mbit/s → li consegna tutti.**
+  Il cavo satura quello che il server produce. Nell'app, via USB: 30.8 fps a risoluzione nativa
+  1600×900 con qualità 85, contro 19.3 fps a 720p/q60 via WiFi.
+- **Costo:** zero lato server — non passa dalla rete, quindi niente firewall e niente urlacl.
+  Richiede però il **debug USB attivo**: è una funzione da sviluppatore, non qualcosa che si
+  possa chiedere a un utente qualsiasi.
+- **Alternative:** USB tethering inverso — richiede configurazione di rete sul dispositivo,
+  molto più invasivo per lo stesso risultato.
+- **Impatto:** `tools/usb-link.ps1`, `Discovery.kt`, `MainActivity.kt`.
+
 ### Il disegno non scala: `setFixedSize` + copia 1:1
 - **Data:** 2026-07-27
 - **Decisione:** `MjpegSurfaceView` fissa il buffer della superficie alla dimensione esatta del

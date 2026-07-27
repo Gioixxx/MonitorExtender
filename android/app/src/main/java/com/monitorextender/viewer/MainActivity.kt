@@ -49,11 +49,12 @@ class MainActivity : ComponentActivity() {
                 return@launch
             }
             binding.address.setText(server.hostAndPort)
-            Toast.makeText(
-                this@MainActivity,
-                getString(R.string.found_pc, server.name, server.hostAndPort),
-                Toast.LENGTH_SHORT,
-            ).show()
+            val message = if (server.viaUsb) {
+                getString(R.string.found_pc_usb, server.name)
+            } else {
+                getString(R.string.found_pc, server.name, server.hostAndPort)
+            }
+            Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
         }
     }
 
