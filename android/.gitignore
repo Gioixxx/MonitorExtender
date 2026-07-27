@@ -1,0 +1,14 @@
+*.iml
+.gradle/
+.idea/
+.DS_Store
+
+# "build/" e non "/build": senza la barra iniziale la regola vale a ogni livello e
+# copre anche android/app/build/, che altrimenti finirebbe nel repository.
+build/
+captures/
+.externalNativeBuild
+.cxx
+
+# Contiene il percorso dell'SDK Android, diverso su ogni macchina.
+local.properties

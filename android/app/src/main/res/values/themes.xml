@@ -1,0 +1,9 @@
+<resources>
+
+    <style name="Theme.MonitorExtender" parent="@android:style/Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.MonitorExtender.Fullscreen" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+
+</resources>
