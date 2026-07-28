@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Runtime.Versioning;
 using System.Text;
@@ -123,6 +124,9 @@ public sealed class MjpegServer : IDisposable
                 case "/info":
                     await WriteInfoAsync(context).ConfigureAwait(false);
                     break;
+                case "/input":
+                    await HandleInputAsync(context).ConfigureAwait(false);
+                    break;
                 default:
                     context.Response.StatusCode = 404;
                     context.Response.Close();
@@ -207,6 +211,86 @@ public sealed class MjpegServer : IDisposable
                 quality: Read(query, "q", "quality")))
         {
             Console.WriteLine($"[server] richiesti nuovi parametri: {_settings}");
+        }
+    }
+
+    /// <summary>
+    /// Riceve i comandi di mouse dal tablet. Un comando per riga, cosi' un trascinamento puo'
+    /// arrivare raggruppato in una sola richiesta invece di una per movimento:
+    ///
+    ///   m 0.512 0.334   sposta il cursore (frazioni della larghezza e altezza dello schermo)
+    ///   d left          preme un pulsante   (left | right | middle)
+    ///   u left          rilascia un pulsante
+    ///   w -120          rotella (120 = uno scatto in su)
+    ///
+    /// Accettato solo da loopback, cioe' solo attraverso il cavo USB (adb reverse). Sulla rete
+    /// il tablet resta di sola visione: uno stream che si guarda e' un conto, un telecomando
+    /// del PC senza autenticazione e' un altro.
+    /// </summary>
+    private async Task HandleInputAsync(HttpListenerContext context)
+    {
+        if (!context.Request.IsLocal)
+        {
+            Console.WriteLine($"[input] rifiutato da {context.Request.RemoteEndPoint?.Address}: non e' loopback");
+            context.Response.StatusCode = 403;
+            context.Response.Close();
+            return;
+        }
+
+        string body;
+        using (var reader = new StreamReader(context.Request.InputStream, Encoding.ASCII))
+            body = await reader.ReadToEndAsync().ConfigureAwait(false);
+
+        foreach (var line in body.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            Apply(line);
+
+        context.Response.StatusCode = 204;
+        context.Response.Close();
+    }
+
+    private static void Apply(string command)
+    {
+        var parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return;
+
+        try
+        {
+            switch (parts[0])
+            {
+                case "m" when parts.Length >= 3
+                              && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
+                              && double.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var y):
+                    InputInjector.MoveTo(x, y);
+                    break;
+                case "d" when parts.Length >= 2 && TryParseButton(parts[1], out var down):
+                    InputInjector.ButtonDown(down);
+                    break;
+                case "u" when parts.Length >= 2 && TryParseButton(parts[1], out var up):
+                    InputInjector.ButtonUp(up);
+                    break;
+                case "w" when parts.Length >= 2 && int.TryParse(parts[1], out var delta):
+                    InputInjector.Wheel(delta);
+                    break;
+                default:
+                    Console.WriteLine($"[input] comando ignorato: \"{command}\"");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Un comando malformato non deve far cadere la connessione di controllo.
+            Console.WriteLine($"[input] errore su \"{command}\": {ex.Message}");
+        }
+    }
+
+    private static bool TryParseButton(string name, out InputInjector.Button button)
+    {
+        switch (name)
+        {
+            case "left": button = InputInjector.Button.Left; return true;
+            case "right": button = InputInjector.Button.Right; return true;
+            case "middle": button = InputInjector.Button.Middle; return true;
+            default: button = InputInjector.Button.Left; return false;
         }
     }
 

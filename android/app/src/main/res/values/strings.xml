@@ -1,18 +1,30 @@
 <resources>
     <string name="app_name">MonitorExtender</string>
-    <string name="address_help">Indirizzo del PC sulla stessa WiFi, oppure 127.0.0.1:8080 se sei
-        collegato via cavo USB. La porta e’ 8080 se non la scrivi.</string>
+
+    <string name="choose_connection">Scegli come collegarti al PC. Tocca una delle due schede.</string>
+    <string name="checking">Controllo in corso…</string>
+    <string name="recheck">Ricontrolla</string>
+
+    <string name="usb_title">Via cavo USB</string>
+    <string name="usb_hint">Più veloce e a qualità più alta. È l’unico modo per comandare il PC
+        dal touchscreen del tablet.</string>
+    <string name="usb_ready">Pronto — %1$s. Tocca per collegarti.</string>
+    <string name="usb_missing">Non disponibile. Sul PC, con il tablet collegato via cavo e il
+        debug USB attivo, esegui:\n\n    powershell -File tools\\usb-link.ps1</string>
+
+    <string name="wifi_title">Via WiFi</string>
+    <string name="wifi_hint">PC e tablet devono essere sulla stessa rete. Solo visione: il
+        touchscreen non comanda il PC.</string>
+    <string name="wifi_ready">Trovato %1$s su %2$s. Tocca per collegarti.</string>
+    <string name="wifi_missing">Nessun server trovato sulla rete. Controlla che sia avviato sul
+        PC e che il tablet sia sulla WiFi, non su rete dati.</string>
+
+    <string name="manual_label">Oppure indirizzo a mano</string>
     <string name="address_hint">192.168.1.62:8080</string>
     <string name="address_invalid">Indirizzo non valido</string>
     <string name="connect_native">Connetti</string>
-    <string name="connect_web_view">Apri nella WebView</string>
-    <string name="footer_hint">Il server deve essere avviato sul PC. Se resta nero, controlla di
-        non essere su rete dati invece che sulla WiFi.</string>
+    <string name="connect_web_view">WebView</string>
+
     <string name="stream_error">Stream interrotto: %1$s</string>
     <string name="reconnecting">Riconnessione tra %1$.1f s…</string>
-    <string name="search_pc">Cerca il PC sulla rete</string>
-    <string name="searching">Ricerca in corso…</string>
-    <string name="found_pc">Trovato %1$s su %2$s</string>
-    <string name="found_pc_usb">Trovato %1$s via cavo USB</string>
-    <string name="not_found">Nessun server trovato. Controlla che sia avviato sul PC.</string>
 </resources>

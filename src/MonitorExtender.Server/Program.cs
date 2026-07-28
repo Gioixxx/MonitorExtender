@@ -58,6 +58,7 @@ if (server.BoundToAllInterfaces)
 Console.WriteLine("  /             pagina di prova a schermo intero");
 Console.WriteLine("  /snapshot     singolo frame JPEG");
 Console.WriteLine("  /info         parametri correnti in JSON");
+Console.WriteLine("  /input        controllo del mouse — solo da loopback (cavo USB)");
 Console.WriteLine("  parametri live: /stream?fps=15&q=40&scale=480");
 
 DiscoveryResponder? discovery = null;

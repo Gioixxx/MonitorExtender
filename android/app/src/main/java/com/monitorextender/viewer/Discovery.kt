@@ -40,8 +40,15 @@ object Discovery {
     }
 
     suspend fun findFirst(timeoutMs: Int = 2000): Server? = withContext(Dispatchers.IO) {
-        probeUsb() ?: probeBroadcast(timeoutMs)
+        findUsb() ?: findOnLan(timeoutMs)
     }
+
+    /** Cerca il server all'altro capo del cavo. */
+    suspend fun findUsb(): Server? = withContext(Dispatchers.IO) { probeUsb() }
+
+    /** Cerca il server sulla rete locale. */
+    suspend fun findOnLan(timeoutMs: Int = 2000): Server? =
+        withContext(Dispatchers.IO) { probeBroadcast(timeoutMs) }
 
     /**
      * Interroga `/info` su localhost: risponde solo se `adb reverse` sta inoltrando la porta

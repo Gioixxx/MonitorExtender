@@ -9,6 +9,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.monitorextender.viewer.databinding.ActivityViewerBinding
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -28,6 +29,7 @@ class ViewerActivity : ComponentActivity() {
     private lateinit var url: String
     private var streaming: Job? = null
     private var overlayVisible = false
+    private var input: InputSender? = null
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
@@ -54,8 +56,24 @@ class ViewerActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         goImmersive()
 
-        // Un tocco mostra o nasconde i numeri: niente bottoni sopra il video.
-        binding.root.setOnClickListener { toggleOverlay() }
+        setUpTouch()
+    }
+
+    /**
+     * Il controllo del PC si attiva solo via cavo: il server accetta i comandi di mouse
+     * unicamente da loopback, quindi sulla WiFi non varrebbe nemmeno la pena mandarli. Li' il
+     * tocco resta quello che era, cioe' mostra e nasconde le statistiche.
+     */
+    private fun setUpTouch() {
+        val base = url.substringBeforeLast("/stream")
+        val host = base.toHttpUrlOrNull()?.host
+
+        if (host != null && (host == "127.0.0.1" || host == "localhost")) {
+            val sender = InputSender(base, lifecycleScope).also { input = it }
+            binding.video.setOnTouchListener(TouchController(sender) { toggleOverlay() })
+        } else {
+            binding.root.setOnClickListener { toggleOverlay() }
+        }
     }
 
     override fun onStart() {
@@ -69,6 +87,12 @@ class ViewerActivity : ComponentActivity() {
         // appena l'ultimo client si scollega.
         streaming?.cancel()
         streaming = null
+    }
+
+    override fun onDestroy() {
+        input?.close()
+        input = null
+        super.onDestroy()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

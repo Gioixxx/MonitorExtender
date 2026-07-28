@@ -68,6 +68,38 @@ Registro scelte tecniche con motivazioni.
 - **Alternative:** Java — nessun vantaggio tecnico qui, solo familiarità.
 - **Impatto:** progetto Android (Fase 3).
 
+### Controllo del PC dal touchscreen, solo via cavo
+- **Data:** 2026-07-28
+- **Decisione:** il tablet comanda il mouse del PC (`SendInput`), ma l'endpoint `/input` accetta
+  comandi **solo da loopback**, quindi solo attraverso il cavo. Sulla WiFi resta di sola visione.
+- **Perché:** trasmettere lo schermo è passivo; accettare input è un telecomando. Senza
+  autenticazione, chiunque sulla stessa rete potrebbe cliccare al posto tuo. Il vincolo su
+  loopback elimina il problema invece di gestirlo con un token da custodire.
+- **Mappatura scelta — monitor touch, non trackpad:** il tasto sinistro si preme **subito** al
+  tocco, senza attendere per distinguere click da trascinamento, perché quell'attesa si
+  sentirebbe su ogni tocco. Conseguenza obbligata: il click destro non può essere la pressione
+  lunga (il sinistro è già premuto) ed è il tocco a due dita; all'arrivo del secondo dito il
+  sinistro viene rilasciato. Due dita in scorrimento = rotella, tre dita = overlay.
+- **Limiti di Windows, non aggirabili:** un processo non elevato non inietta input nelle finestre
+  di app elevate (UIPI), e sul desktop sicuro (UAC, blocco schermo) l'iniezione non funziona
+  affatto.
+- **Trappola:** i numeri vanno formattati con `Locale.US`. In italiano `%.4f` produce `0,5123` e
+  il parser lato server (InvariantCulture) non lo legge.
+- **Impatto:** `InputInjector.cs`, `MjpegServer.HandleInputAsync`, `InputSender.kt`,
+  `TouchController.kt`.
+
+### Le due vie di collegamento vanno mostrate separate
+- **Data:** 2026-07-28
+- **Decisione:** la schermata iniziale espone **due schede distinte** — cavo USB e WiFi — ognuna
+  con il proprio stato, invece di un solo pulsante "cerca" che provava il cavo e ripiegava sulla
+  rete in silenzio.
+- **Perché:** segnalato dall'uso reale. Con il ripiego automatico non c'era modo di sapere che il
+  cavo esistesse, né perché non avesse funzionato: si finiva sempre sulla WiFi senza accorgersene.
+  Ora la scheda del cavo, quando non è disponibile, dice esattamente quale comando lanciare sul PC.
+- **Regola generale che ne esce:** un ripiego automatico silenzioso nasconde all'utente sia
+  l'opzione migliore sia il motivo per cui non è attiva.
+- **Impatto:** `activity_main.xml`, `MainActivity.kt`, `Discovery.findUsb`/`findOnLan`.
+
 ### Collegamento via cavo USB con `adb reverse`
 - **Data:** 2026-07-27
 - **Decisione:** oltre alla WiFi, il tablet può collegarsi via USB. `adb reverse tcp:8080 tcp:8080`

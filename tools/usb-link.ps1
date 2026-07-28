@@ -54,7 +54,8 @@ if ($info -match '"name"') {
     Write-Host "Il dispositivo raggiunge il server via cavo:" -ForegroundColor Green
     Write-Host "  $info"
     Write-Host ""
-    Write-Host "Nell'app premi 'Cerca il PC': trova da sola il collegamento USB e lo preferisce." -ForegroundColor Cyan
+    Write-Host "Nell'app la scheda 'Via cavo USB' ora risulta pronta: toccala per collegarti." -ForegroundColor Cyan
+    Write-Host "Se era gia' aperta, premi 'Ricontrolla'." -ForegroundColor Cyan
     Write-Host "Con questa banda puoi alzare la qualita', per esempio:" -ForegroundColor Cyan
     Write-Host "  http://127.0.0.1:$Port/stream?scale=1080&fps=30&q=85"
 } else {

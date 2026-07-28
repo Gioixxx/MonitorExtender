@@ -28,7 +28,11 @@ Stato lavoro in corso. Aggiornato con /sprint. Backlog in [[backlog]], debito in
       percorso 1:1) e nessuna disconnessione, perché `configChanges` evita di ricreare l'activity.
 - [x] Extra — collegamento via cavo USB (`adb reverse`), rilevato automaticamente e preferito
       alla WiFi: 30.8 fps a 1600×900 nativi con qualità 85, contro 19.3 fps a 720p/q60 via WiFi.
-- [ ] Fase 5 — upgrade H.264 (parcheggiata, progetto a sé). **Nota:** con l'USB il collo di
+- [x] Extra — controllo del PC dal touchscreen del tablet (solo via cavo) e schermata iniziale
+      con le due vie di collegamento esplicite. Provato sul dispositivo: cavo e touch funzionano.
+- [ ] Prossimo — rifinitura grafica dell'app.
+- [ ] Prossimo — avvio autonomo del server sul PC, senza terminale.
+- [ ] Fase 5 — upgrade H.264 (**non iniziata**, progetto a sé). Nota: con l'USB il collo di
       bottiglia della banda sparisce, quindi la spinta verso H.264 vale soprattutto per la WiFi.
 
 ## Note operative
