@@ -12,8 +12,10 @@ namespace MonitorExtender.Server;
 /// allocarli a ogni giro costerebbe piu' della cattura stessa.
 /// </summary>
 [SupportedOSPlatform("windows")]
-public sealed class ScreenCapturer : IDisposable
+public sealed class ScreenCapturer : IScreenSource
 {
+    public string Name => "GDI (CopyFromScreen)";
+
     private const int SmCxScreen = 0;
     private const int SmCyScreen = 1;
     private static readonly nint DpiAwarePerMonitorV2 = -4;
@@ -58,8 +60,10 @@ public sealed class ScreenCapturer : IDisposable
     /// <summary>
     /// Cattura un frame e lo ridimensiona. Il bitmap restituito e' riusato al giro
     /// successivo: va consumato (encodato) prima di richiamare Capture.
+    /// Il timeout e' ignorato: GDI restituisce sempre quello che c'e' adesso sullo schermo,
+    /// anche se non e' cambiato nulla.
     /// </summary>
-    public Bitmap Capture()
+    public Bitmap Capture(int timeoutMs = 100)
     {
         _fullGraphics.CopyFromScreen(0, 0, 0, 0, new Size(SourceWidth, SourceHeight), CopyPixelOperation.SourceCopy);
 

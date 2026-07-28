@@ -68,6 +68,26 @@ Registro scelte tecniche con motivazioni.
 - **Alternative:** Java — nessun vantaggio tecnico qui, solo familiarità.
 - **Impatto:** progetto Android (Fase 3).
 
+### Desktop Duplication non è utilizzabile su questa macchina (risultato negativo)
+- **Data:** 2026-07-28
+- **Esito della misura:** `--compare` non ha potuto confrontare nulla. `IDXGIOutput1::DuplicateOutput`
+  restituisce **E_ACCESSDENIED**, riproducibile, dentro e fuori dall'ambiente ristretto.
+- **Causa accertata:** il PC **non ha un monitor collegato**. `Get-PnpDevice -Class Monitor` non
+  enumera nulla e `WmiMonitorBasicDisplayParams` risponde "non supportato", mentre la scheda
+  riporta 1600×900 di ripiego. La Desktop Duplication pretende un'uscita video reale e attiva;
+  GDI funziona lo stesso perché una superficie desktop esiste comunque.
+- **Configurazione:** Khadas Mind. Intel Arc B390 (iGPU, guida il desktop) + NVIDIA RTX 5060 Ti
+  in stato *Unknown*, cioè il dock grafico scollegato. Il processo `Mind` del software di
+  sistema consuma stabilmente il 100% di un core: sospetto principale per il degrado di
+  `CopyFromScreen` da 21 a 69 ms, ma **non dimostrato**.
+- **Conseguenza:** la Fase 5 resta ferma e la cattura resta GDI. Il prototipo e la diagnostica
+  restano in `--compare`: costano nulla e la misura diventa immediata il giorno in cui c'è un
+  monitor collegato o il dock NVIDIA è attivo.
+- **Da rifare quando c'è uno schermo:** `MonitorExtender.Server.exe --compare`.
+- **Nota:** se il tablet è davvero l'unico schermo del PC, questo progetto non è un secondo
+  monitor ma **il** monitor — il che cambia le priorità (risoluzione headless, avvio senza
+  display, robustezza) più di quanto le cambierebbe H.264.
+
 ### Avvio automatico: compito pianificato, non servizio Windows
 - **Data:** 2026-07-28
 - **Decisione:** `tools/autostart.ps1` registra un compito nell'Utilità di pianificazione che

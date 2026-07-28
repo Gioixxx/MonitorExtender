@@ -57,6 +57,19 @@ public static class InputInjector
         _ => MouseEventLeftUp,
     }));
 
+    /// <summary>
+    /// Sposta il cursore di pochi pixel rispetto a dov'e' ora, senza saltare altrove.
+    /// Serve al banco di prova: la Desktop Duplication consegna un frame solo quando lo
+    /// schermo cambia, quindi va provocato un cambiamento a ogni giro.
+    /// </summary>
+    public static void Nudge(int dx, int dy)
+    {
+        var input = NewMouseInput(MouseEventMove); // senza ABSOLUTE il movimento e' relativo
+        input.u.mi.dx = dx;
+        input.u.mi.dy = dy;
+        Send(input);
+    }
+
     /// <summary>Rotella: 120 e' uno scatto verso l'alto, -120 verso il basso.</summary>
     public static void Wheel(int delta)
     {

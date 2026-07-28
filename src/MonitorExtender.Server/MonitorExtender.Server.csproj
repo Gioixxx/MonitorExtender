@@ -14,8 +14,19 @@
     <RootNamespace>MonitorExtender.Server</RootNamespace>
     <AssemblyName>MonitorExtender.Server</AssemblyName>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Serve solo per la copia riga per riga dei pixel dalla texture DXGI. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- La consapevolezza DPI la imposta ScreenCapturer a runtime, prima della cattura. -->
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Interop DXGI/Direct3D per la Desktop Duplication API. A mano sarebbero centinaia di
+      righe di dichiarazioni COM: qui serve a misurare se la cattura via GPU conviene
+      rispetto a CopyFromScreen, e sbagliare l'interop falserebbe proprio la misura.
+    -->
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
+  </ItemGroup>
 
 </Project>

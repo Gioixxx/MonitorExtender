@@ -35,6 +35,12 @@ internal static class Program
             return Probe(options);
         }
 
+        if (args.Contains("--compare"))
+        {
+            AttachToConsole();
+            return Compare(options);
+        }
+
         // Senza --console il programma non ha finestra: si vive di icona e di registro.
         var headless = args.Contains("--console");
         if (headless) AttachToConsole();
@@ -113,6 +119,7 @@ internal static class Program
           --console       resta in primo piano con il registro a schermo,
                           invece dell'icona vicino all'orologio
           --probe         cattura un solo frame, lo salva su disco ed esce
+          --compare       mette a confronto GDI e Desktop Duplication ed esce
         """);
 
     private static void Announce(
@@ -172,6 +179,116 @@ internal static class Program
         return 0;
     }
 
+    /// <summary>
+    /// Mette a confronto le due catture **alternandole nello stesso ciclo**, non una dopo
+    /// l'altra: la macchina cambia carico di continuo, e misurare in due momenti diversi
+    /// direbbe piu' su com'era il PC che su quale tecnica sia migliore.
+    ///
+    /// Si misura fino al bitmap ridimensionato **e codificato in JPEG**, cioe' fino a quello
+    /// che il server spedisce davvero. Fermarsi prima favorirebbe la duplicazione, che
+    /// consegna una texture e non un'immagine pronta.
+    /// </summary>
+    private static int Compare(StreamOptions options)
+    {
+        const int rounds = 40;
+        const int timeoutMs = 500;
+
+        using var gdi = new ScreenCapturer(options.Scale);
+        using var encoder = new JpegEncoder(options.Quality);
+
+        DuplicationCapturer dxgi;
+        try
+        {
+            dxgi = new DuplicationCapturer(options.Scale);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Desktop Duplication non disponibile: {ex.Message.Split('\n')[0]}");
+            Console.WriteLine();
+            Console.WriteLine("Diagnostica:");
+            try { DuplicationCapturer.Diagnose(Console.Out); }
+            catch (Exception inner) { Console.WriteLine($"  fallita anche la diagnostica: {inner.Message}"); }
+            return 1;
+        }
+
+        using (dxgi)
+        {
+            Console.WriteLine($"Confronto su {rounds} giri, {gdi.SourceWidth}x{gdi.SourceHeight} → " +
+                              $"{gdi.TargetWidth}x{gdi.TargetHeight}, qualita' {options.Quality}.");
+            Console.WriteLine("Il cursore viene spostato di un pixel a ogni giro: senza un cambiamento");
+            Console.WriteLine("sullo schermo la duplicazione non consegnerebbe alcun frame.");
+            Console.WriteLine();
+
+            // Riscaldamento: la prima cattura di entrambi paga inizializzazioni che non
+            // si ripetono, e falserebbe la media.
+            encoder.Encode(gdi.Capture());
+            dxgi.Capture(timeoutMs);
+
+            var gdiTimes = new List<double>(rounds);
+            var dxgiTimes = new List<double>(rounds);
+            var timeouts = 0;
+            var watch = new Stopwatch();
+
+            for (var round = 0; round < rounds; round++)
+            {
+                InputInjector.Nudge(round % 2 == 0 ? 1 : -1, 0);
+                Thread.Sleep(20);
+
+                watch.Restart();
+                encoder.Encode(gdi.Capture());
+                watch.Stop();
+                gdiTimes.Add(watch.Elapsed.TotalMilliseconds);
+
+                watch.Restart();
+                var frame = dxgi.Capture(timeoutMs);
+                if (frame == null)
+                {
+                    timeouts++;
+                    continue;
+                }
+                encoder.Encode(frame);
+                watch.Stop();
+                dxgiTimes.Add(watch.Elapsed.TotalMilliseconds);
+            }
+
+            Report("GDI  CopyFromScreen", gdiTimes);
+            Report("DXGI Duplication   ", dxgiTimes);
+            if (timeouts > 0)
+                Console.WriteLine($"\n{timeouts} giri senza frame nuovo dalla duplicazione (schermo fermo).");
+
+            if (gdiTimes.Count > 0 && dxgiTimes.Count > 0)
+            {
+                var gain = Median(gdiTimes) / Median(dxgiTimes);
+                Console.WriteLine();
+                Console.WriteLine($"La duplicazione e' {gain:F1}× {(gain >= 1 ? "piu' veloce" : "piu' lenta")} " +
+                                  $"sulla mediana → tetto teorico {1000 / Median(dxgiTimes):F0} fps " +
+                                  $"contro {1000 / Median(gdiTimes):F0}.");
+            }
+        }
+
+        return 0;
+    }
+
+    private static void Report(string label, List<double> times)
+    {
+        if (times.Count == 0)
+        {
+            Console.WriteLine($"{label} : nessuna misura");
+            return;
+        }
+
+        Console.WriteLine($"{label} : mediana {Median(times):F1} ms · min {times.Min():F1} · " +
+                          $"max {times.Max():F1} · media {times.Average():F1}  ({times.Count} misure)");
+    }
+
+    /// <summary>Mediana e non media: un singolo picco di sistema sposterebbe la media e non la conclusione.</summary>
+    private static double Median(List<double> values)
+    {
+        var sorted = values.OrderBy(v => v).ToList();
+        var middle = sorted.Count / 2;
+        return sorted.Count % 2 == 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+    }
+
     internal static IEnumerable<string> LanAddresses() =>
         NetworkInterface.GetAllNetworkInterfaces()
             .Where(n => n.OperationalStatus == OperationalStatus.Up)
@@ -192,10 +309,19 @@ internal static class Program
     /// </summary>
     private static void AttachToConsole()
     {
-        if (!AttachConsole(AttachParentProcess)) return;
+        // Se chi ci ha avviati ha gia' rediretto lo stdout su una pipe o su un file, quello
+        // e' il posto giusto dove scrivere e non serve agganciarsi a nessuna console.
+        if (BindStandardOutput()) return;
+        if (AttachConsole(AttachParentProcess)) BindStandardOutput();
+    }
 
-        var stdout = new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true };
-        Console.SetOut(stdout);
+    private static bool BindStandardOutput()
+    {
+        var stream = Console.OpenStandardOutput();
+        if (stream == Stream.Null) return false;
+
+        Console.SetOut(new StreamWriter(stream) { AutoFlush = true });
+        return true;
     }
 
     [DllImport("kernel32.dll", SetLastError = true)]
