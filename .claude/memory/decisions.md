@@ -68,6 +68,25 @@ Registro scelte tecniche con motivazioni.
 - **Alternative:** Java — nessun vantaggio tecnico qui, solo familiarità.
 - **Impatto:** progetto Android (Fase 3).
 
+### Preparazione al rilascio (2026-07-28)
+- **`applicationId` = `io.github.gioixxx.monitorextender`**, il namespace del codice resta
+  `com.monitorextender.viewer`. Scelto un DNS inverso di uno spazio realmente controllato
+  (github.com/Gioixxx). **Su Play il nome del pacchetto è definitivo** dopo la prima
+  pubblicazione: cambiarlo dopo richiederebbe una scheda nuova, perdendo recensioni e
+  installazioni. Per questo è stato fatto prima.
+- **Licenza MIT.** ⚠️ Il nome nel file `LICENSE` è "Giuseppe Mantello", preso da
+  `.claude/libs/CLAUDE.md`; l'indirizzo git è `mantellogioele@gmail.com`. **Da verificare.**
+- **Nome mantenuto "MonitorExtender"** pur facendo mirroring: la descrizione dello store lo
+  chiarisce tre volte, perché è il primo motivo di recensioni negative.
+- **Chiave di firma mai nel repository:** `keystore.properties` e `*.jks` sono in `.gitignore`,
+  e `build.gradle.kts` produce un pacchetto **non firmato** se il file manca, invece di fallire.
+  Così la compilazione di verifica (R8, dimensioni) resta possibile a chiunque.
+- **Distribuzione del server in due tagli:** autonomo (~68 MB, nessun prerequisito) e leggero
+  (~0,8 MB, richiede .NET 8). `dist/` è escluso da git: gli archivi si allegano alla release.
+- **Dubbio onesto sul senso della pubblicazione:** la funzione migliore (cavo USB, controllo del
+  mouse) richiede il debug USB, che quasi nessuno attiverà. Sullo store arriverebbe di fatto
+  solo la modalità Wi-Fi. Annotato in `docs/play-store.md`.
+
 ### Il PC senza monitor è la causa comune di entrambi i problemi
 - **Data:** 2026-07-28
 - **Constatazione:** misurando le due fasi separatamente, i **71.7 ms della cattura sono tutti

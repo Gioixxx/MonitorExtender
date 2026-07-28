@@ -19,5 +19,9 @@ bin/
 obj/
 *.user
 
+# Pacchetti di distribuzione: si rigenerano con tools\publish-server.ps1 e pesano
+# decine di megabyte. Vanno allegati alla release su GitHub, non versionati.
+dist/
+
 # Backup generati dagli hook della memoria
 *.bak

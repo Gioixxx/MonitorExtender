@@ -12,3 +12,8 @@ captures/
 
 # Contiene il percorso dell'SDK Android, diverso su ogni macchina.
 local.properties
+
+# Chiave di firma e relative password: chi le ha puo' pubblicare aggiornamenti a tuo nome.
+keystore.properties
+*.jks
+*.keystore
