@@ -59,6 +59,15 @@ class TouchController(
                 // Il primo dito aveva gia' premuto il sinistro: va annullato prima che
                 // diventi un trascinamento indesiderato.
                 releaseLeft()
+
+                // Appoggiare piu' dita insieme sposta inevitabilmente il primo: se si
+                // continuasse a misurare dalla posizione iniziale, ogni gesto a piu' dita
+                // risulterebbe "mosso" e verrebbe scartato. Si riparte da qui.
+                startX = event.x
+                startY = event.y
+                movedFar = false
+                gestureStart = SystemClock.elapsedRealtime()
+
                 if (event.pointerCount == 2) {
                     lastScrollY = midY(event)
                     scrollRemainder = 0f
@@ -106,7 +115,11 @@ class TouchController(
     }
 
     private fun finishGesture() {
-        val quick = SystemClock.elapsedRealtime() - gestureStart < TAP_MS
+        // Piu' dita sono, meno sincronizzate arrivano e piu' scivolano: le soglie di tempo e
+        // di movimento vanno allentate, altrimenti il gesto a tre dita non scatta mai.
+        val limit = if (maxPointers >= 2) MULTI_TAP_MS else TAP_MS
+        val quick = SystemClock.elapsedRealtime() - gestureStart < limit
+
         if (quick && !movedFar) {
             when (maxPointers) {
                 2 -> sender.click(RIGHT)
@@ -123,8 +136,10 @@ class TouchController(
         }
     }
 
-    private fun farFrom(event: MotionEvent) =
-        abs(event.x - startX) > TOUCH_SLOP || abs(event.y - startY) > TOUCH_SLOP
+    private fun farFrom(event: MotionEvent): Boolean {
+        val slop = if (maxPointers >= 2) MULTI_TOUCH_SLOP else TOUCH_SLOP
+        return abs(event.x - startX) > slop || abs(event.y - startY) > slop
+    }
 
     private fun midY(event: MotionEvent) = (event.getY(0) + event.getY(1)) / 2f
 
@@ -134,6 +149,8 @@ class TouchController(
         const val WHEEL_NOTCH = 120
         const val PIXELS_PER_NOTCH = 40f
         const val TOUCH_SLOP = 24f
+        const val MULTI_TOUCH_SLOP = 90f
         const val TAP_MS = 300L
+        const val MULTI_TAP_MS = 700L
     }
 }

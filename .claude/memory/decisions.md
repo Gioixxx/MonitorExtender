@@ -68,6 +68,22 @@ Registro scelte tecniche con motivazioni.
 - **Alternative:** Java — nessun vantaggio tecnico qui, solo familiarità.
 - **Impatto:** progetto Android (Fase 3).
 
+### Il PC senza monitor è la causa comune di entrambi i problemi
+- **Data:** 2026-07-28
+- **Constatazione:** misurando le due fasi separatamente, i **71.7 ms della cattura sono tutti
+  nella copia dallo schermo** (`CopyFromScreen`); il ridimensionamento costa 0.0 ms e l'encode
+  JPEG 2.4 ms. Non c'è niente da ottimizzare nel nostro codice.
+- **Radice unica:** il PC non ha un display collegato — nessun monitor PnP, nessun dispositivo
+  enumerato da `EnumDisplayDevices`, risoluzione di ripiego 1600×900. Senza un percorso video
+  hardware attivo, `BitBlt` dallo schermo non è accelerato (≈70 ms invece dei 5-15 attesi) **e**
+  la Desktop Duplication viene negata. Due sintomi, una causa.
+- **Prova da fare, costo minimo:** collegare un monitor vero, oppure il dock NVIDIA, oppure un
+  **tappo HDMI fittizio** da pochi euro che fa credere a Windows che ci sia uno schermo. Poi
+  rilanciare `--probe` e `--compare`: se la copia scende e la duplicazione smette di essere
+  negata, l'ipotesi è confermata e il tetto passa da 13 fps a molto di più.
+- **Nota:** finché resta così, chiedere 30 fps è inutile — il tetto è 13. La qualità però conviene
+  alzarla lo stesso, perché non costa fps: l'encode resta 2.4 ms.
+
 ### Desktop Duplication non è utilizzabile su questa macchina (risultato negativo)
 - **Data:** 2026-07-28
 - **Esito della misura:** `--compare` non ha potuto confrontare nulla. `IDXGIOutput1::DuplicateOutput`

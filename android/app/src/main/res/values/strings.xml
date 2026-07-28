@@ -29,4 +29,6 @@
 
     <string name="stream_error">Stream interrotto: %1$s</string>
     <string name="reconnecting">Riconnessione tra %1$.1f s…</string>
+    <string name="overlay_hint_touch">Tre dita per statistiche · Due dita: tasto destro e scorrimento</string>
+    <string name="overlay_hint_tap">Tocca per mostrare o nascondere le statistiche</string>
 </resources>

@@ -1,7 +1,9 @@
 package com.monitorextender.viewer
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ServerAddressTest {
@@ -32,7 +34,27 @@ class ServerAddressTest {
 
     @Test
     fun `costruisce gli url dei due viewer`() {
-        assertEquals("http://192.168.1.62:8080/stream", ServerAddress.streamUrl("192.168.1.62:8080"))
+        assertEquals(
+            "http://192.168.1.62:8080/stream?scale=720&fps=20&q=60",
+            ServerAddress.streamUrl("192.168.1.62:8080"),
+        )
         assertEquals("http://192.168.1.62:8080/", ServerAddress.pageUrl("192.168.1.62:8080"))
+    }
+
+    @Test
+    fun `chiede piu' qualita' quando passa dal cavo`() {
+        val overUsb = ServerAddress.streamUrl("127.0.0.1:8080")
+        assertTrue("via cavo servono i parametri spinti: $overUsb", overUsb.contains("q=85"))
+        assertTrue(overUsb.contains("fps=30"))
+
+        val overLan = ServerAddress.streamUrl("192.168.1.62:8080")
+        assertTrue("via rete servono i parametri prudenti: $overLan", overLan.contains("q=60"))
+    }
+
+    @Test
+    fun `riconosce il collegamento via cavo`() {
+        assertTrue(ServerAddress.isLoopback("127.0.0.1:8080"))
+        assertTrue(ServerAddress.isLoopback("localhost:8080"))
+        assertFalse(ServerAddress.isLoopback("192.168.1.62:8080"))
     }
 }

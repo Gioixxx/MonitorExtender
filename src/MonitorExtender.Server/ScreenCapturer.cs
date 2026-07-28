@@ -16,6 +16,13 @@ public sealed class ScreenCapturer : IScreenSource
 {
     public string Name => "GDI (CopyFromScreen)";
 
+    // Le due fasi vanno misurate separate: se pesa il ridimensionamento c'e' un rimedio
+    // semplice, se pesa la copia dallo schermo no.
+    private readonly System.Diagnostics.Stopwatch _watch = new();
+
+    public double LastCopyMs { get; private set; }
+    public double LastScaleMs { get; private set; }
+
     private const int SmCxScreen = 0;
     private const int SmCyScreen = 1;
     private static readonly nint DpiAwarePerMonitorV2 = -4;
@@ -65,12 +72,19 @@ public sealed class ScreenCapturer : IScreenSource
     /// </summary>
     public Bitmap Capture(int timeoutMs = 100)
     {
+        _watch.Restart();
         _fullGraphics.CopyFromScreen(0, 0, 0, 0, new Size(SourceWidth, SourceHeight), CopyPixelOperation.SourceCopy);
+        LastCopyMs = _watch.Elapsed.TotalMilliseconds;
 
         if (TargetWidth == SourceWidth && TargetHeight == SourceHeight)
+        {
+            LastScaleMs = 0;
             return _full;
+        }
 
+        _watch.Restart();
         _scaledGraphics.DrawImage(_full, 0, 0, TargetWidth, TargetHeight);
+        LastScaleMs = _watch.Elapsed.TotalMilliseconds;
         return _scaled;
     }
 

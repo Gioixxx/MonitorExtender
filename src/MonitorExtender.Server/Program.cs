@@ -168,7 +168,8 @@ internal static class Program
         var totalMs = captureWatch.Elapsed.TotalMilliseconds + encodeWatch.Elapsed.TotalMilliseconds;
         Console.WriteLine($"sorgente    {capturer.SourceWidth}x{capturer.SourceHeight}");
         Console.WriteLine($"target      {capturer.TargetWidth}x{capturer.TargetHeight} (qualita' {options.Quality})");
-        Console.WriteLine($"cattura     {captureWatch.Elapsed.TotalMilliseconds:F1} ms");
+        Console.WriteLine($"cattura     {captureWatch.Elapsed.TotalMilliseconds:F1} ms " +
+                          $"(copia schermo {capturer.LastCopyMs:F1} + ridimensiona {capturer.LastScaleMs:F1})");
         Console.WriteLine($"encode      {encodeWatch.Elapsed.TotalMilliseconds:F1} ms");
         Console.WriteLine($"totale      {totalMs:F1} ms/frame → tetto teorico {1000 / totalMs:F0} fps");
         Console.WriteLine($"dimensione  {jpeg.Length / 1024} KB → {jpeg.Length * 8.0 * options.Fps / 1_000_000:F1} Mbit/s a {options.Fps} fps");

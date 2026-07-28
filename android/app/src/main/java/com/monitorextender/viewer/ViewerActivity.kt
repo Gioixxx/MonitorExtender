@@ -29,6 +29,8 @@ class ViewerActivity : ComponentActivity() {
     private lateinit var url: String
     private var streaming: Job? = null
     private var overlayVisible = false
+    private var autoRevealed = false
+    private var controllingPc = false
     private var input: InputSender? = null
 
     private val client = OkHttpClient.Builder()
@@ -65,15 +67,41 @@ class ViewerActivity : ComponentActivity() {
      * tocco resta quello che era, cioe' mostra e nasconde le statistiche.
      */
     private fun setUpTouch() {
-        val base = url.substringBeforeLast("/stream")
+        val base = url.substringBefore("/stream")
         val host = base.toHttpUrlOrNull()?.host
 
         if (host != null && (host == "127.0.0.1" || host == "localhost")) {
             val sender = InputSender(base, lifecycleScope).also { input = it }
             binding.video.setOnTouchListener(TouchController(sender) { toggleOverlay() })
+            controllingPc = true
         } else {
             binding.root.setOnClickListener { toggleOverlay() }
         }
+    }
+
+    /**
+     * Con il controllo del PC attivo ogni tocco e' un click, quindi le statistiche si aprono
+     * con tre dita — un gesto che nessuno indovina. Mostrarle qualche secondo all'apertura e'
+     * l'unico modo di far sapere che esistono e come richiamarle.
+     */
+    private fun revealOverlayHint() {
+        if (overlayVisible) return
+
+        overlayVisible = true
+        autoRevealed = true
+        binding.stats.text = getString(
+            if (controllingPc) R.string.overlay_hint_touch else R.string.overlay_hint_tap
+        )
+        binding.stats.visibility = View.VISIBLE
+
+        binding.stats.postDelayed({
+            // Se nel frattempo l'hai aperto tu, non te lo chiudo in faccia.
+            if (autoRevealed) {
+                autoRevealed = false
+                overlayVisible = false
+                binding.stats.visibility = View.GONE
+            }
+        }, HINT_MS)
     }
 
     override fun onStart() {
@@ -110,6 +138,7 @@ class ViewerActivity : ComponentActivity() {
     }
 
     private fun toggleOverlay() {
+        autoRevealed = false
         overlayVisible = !overlayVisible
         binding.stats.visibility = if (overlayVisible) View.VISIBLE else View.GONE
     }
@@ -142,6 +171,7 @@ class ViewerActivity : ComponentActivity() {
 
             backoff.reset()
             showStatus(null)
+            withContext(Dispatchers.Main) { revealOverlayHint() }
 
             val mjpeg = MjpegStream(checkNotNull(response.body).byteStream())
             val decoder = JpegDecoder()
@@ -151,7 +181,9 @@ class ViewerActivity : ComponentActivity() {
                 val frame = mjpeg.nextFrame()
                 val bitmap = decoder.decode(frame) ?: continue
                 binding.video.drawFrame(bitmap)
-                if (stats.onFrame(frame.length) && overlayVisible) {
+                // Il suggerimento resta finche' non scade: sovrascriverlo con i numeri lo
+                // renderebbe illeggibile prima ancora di essere stato letto.
+                if (stats.onFrame(frame.length) && overlayVisible && !autoRevealed) {
                     val text = stats.format()
                     withContext(Dispatchers.Main) { binding.stats.text = text }
                 }
@@ -162,5 +194,9 @@ class ViewerActivity : ComponentActivity() {
     private suspend fun showStatus(message: String?) = withContext(Dispatchers.Main) {
         binding.status.text = message ?: ""
         binding.status.visibility = if (message == null) View.GONE else View.VISIBLE
+    }
+
+    private companion object {
+        const val HINT_MS = 5000L
     }
 }
