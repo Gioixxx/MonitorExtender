@@ -68,6 +68,38 @@ Registro scelte tecniche con motivazioni.
 - **Alternative:** Java — nessun vantaggio tecnico qui, solo familiarità.
 - **Impatto:** progetto Android (Fase 3).
 
+### L'interfaccia è il selettore di ingresso di un monitor
+- **Data:** 2026-07-28
+- **Decisione:** la schermata di scelta è disegnata come il menu OSD di un monitor: fondo scuro
+  (`bezel #0F1318`), righe-ingresso con barra di link **ambra** (`signal #F2A33C`) come unico
+  colore saturo, etichette in `sans-serif-condensed` maiuscolo spaziato, stati e comandi in
+  `monospace`. Nessuna dipendenza aggiunta: entrambi i font sono di sistema.
+- **Perché:** il linguaggio visivo viene dal mestiere dell'app invece che da un catalogo di stili.
+  Il fondo scuro ha anche una ragione funzionale: il viewer è nero, e prima si passava da una
+  schermata bianca al video con uno stacco fastidioso al buio.
+- **Elemento firma — la striscia di capacità:** sotto ogni ingresso, `VIDEO · TOCCO · QUALITÀ
+  PIENA` contro `VIDEO · SOLA VISIONE`. Rende visibile che i due collegamenti **non sono
+  equivalenti**, che è l'informazione mancata all'utente. Struttura che codifica il contenuto,
+  non decorazione.
+- **Larghezza limitata a 560 dp** da `MainActivity.limitContentWidth()`: in orizzontale il tablet
+  è largo oltre 1100 dp e le righe si stiravano da un bordo all'altro.
+- **Impatto:** `colors.xml`, `themes.xml`, `activity_main.xml`, `activity_viewer.xml`, drawable
+  `input_available`/`input_unavailable`/`code_block`/`button_quiet`/`overlay_panel`.
+
+### La cattura GDI è il vero collo di bottiglia, non la banda
+- **Data:** 2026-07-28
+- **Constatazione:** a fine sessione `--probe` misurava **150 ms/frame** contro i 21 di partenza,
+  stesso codice e stessa risoluzione. Due cause distinte, entrambe verificate:
+  1. **metà era un artefatto di misura**: il probe girava mentre il server catturava già per il
+     tablet, e due catture concorrenti dello stesso schermo si ostacolano (150 → 69 ms fermando
+     il server). *Da ricordare: non misurare la cattura mentre il server è in esecuzione.*
+  2. i restanti 69 ms contro 21 sono degrado ambientale: `CopyFromScreen` rallenta al crescere
+     del carico di composizione del desktop. L'encode JPEG resta a 1.9 ms, quindi è la cattura.
+- **Conseguenza sulla Fase 5:** il motivo per passare a Desktop Duplication API non è più la
+  banda (via cavo abbondante) ma **il costo di cattura**, che con GDI è instabile e può triplicare
+  senza che il codice cambi. H.264 e Desktop Duplication vanno valutati separatamente: il secondo
+  ha più valore del primo.
+
 ### Controllo del PC dal touchscreen, solo via cavo
 - **Data:** 2026-07-28
 - **Decisione:** il tablet comanda il mouse del PC (`SendInput`), ma l'endpoint `/input` accetta

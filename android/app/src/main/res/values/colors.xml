@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        L'interno di una scocca da monitor. Il fondo e' scuro per continuita' con il viewer,
+        che e' nero: passare dalla scelta del collegamento al video non deve essere uno stacco.
+        L'ambra e' l'unico colore saturo dell'interfaccia ed e' riservata al link disponibile,
+        cosi' lo stato si legge dal colore prima ancora che dal testo.
+    -->
+    <color name="bezel">#FF0F1318</color>
+    <color name="panel">#FF171D24</color>
+    <color name="rule">#FF2A333D</color>
+    <color name="signal">#FFF2A33C</color>
+    <color name="ink">#FFE7ECF2</color>
+    <color name="ink_dim">#FF8B95A3</color>
+    <color name="ink_faint">#FF5C6672</color>
+    <color name="overlay_panel">#E00F1318</color>
+</resources>

@@ -1,9 +1,43 @@
 <resources>
 
-    <style name="Theme.MonitorExtender" parent="@android:style/Theme.Material.Light.NoActionBar" />
+    <style name="Theme.MonitorExtender" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/bezel</item>
+        <item name="android:colorAccent">@color/signal</item>
+        <item name="android:textColorPrimary">@color/ink</item>
+        <item name="android:textColorSecondary">@color/ink_dim</item>
+        <item name="android:textColorHint">@color/ink_faint</item>
+        <item name="android:statusBarColor">@color/bezel</item>
+        <item name="android:navigationBarColor">@color/bezel</item>
+    </style>
 
-    <style name="Theme.MonitorExtender.Fullscreen" parent="@android:style/Theme.Material.NoActionBar">
+    <style name="Theme.MonitorExtender.Fullscreen">
         <item name="android:windowBackground">@android:color/black</item>
+    </style>
+
+    <!-- Etichette da pannello: condensato, maiuscolo, spaziato. -->
+    <style name="Label">
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.12</item>
+        <item name="android:textColor">@color/ink</item>
+    </style>
+
+    <!-- Stati e misure: monospazio, perche' sono dati e non prosa. -->
+    <style name="Readout">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:letterSpacing">0.05</item>
+        <item name="android:textColor">@color/ink_dim</item>
+    </style>
+
+    <style name="QuietButton">
+        <item name="android:background">@drawable/button_quiet</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.1</item>
+        <item name="android:textColor">@color/ink</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:stateListAnimator">@null</item>
     </style>
 
 </resources>

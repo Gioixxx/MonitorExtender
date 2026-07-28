@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
@@ -33,6 +34,7 @@ class MainActivity : ComponentActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        limitContentWidth()
         binding.address.setText(prefs.getString(KEY_ADDRESS, ""))
 
         binding.usbCard.setOnClickListener {
@@ -54,6 +56,22 @@ class MainActivity : ComponentActivity() {
         probe()
     }
 
+    /**
+     * Su un tablet in orizzontale lo schermo e' largo oltre mille dp: senza un limite le righe
+     * degli ingressi si stirerebbero da un bordo all'altro e diventerebbero illeggibili.
+     */
+    private fun limitContentWidth() {
+        val maxWidth = (MAX_CONTENT_DP * resources.displayMetrics.density).toInt()
+        binding.content.post {
+            val available = (binding.content.parent as View).width
+            if (available > maxWidth) {
+                binding.content.layoutParams = binding.content.layoutParams.apply {
+                    width = maxWidth
+                }
+            }
+        }
+    }
+
     private fun probe() {
         setChecking()
         lifecycleScope.launch {
@@ -72,38 +90,55 @@ class MainActivity : ComponentActivity() {
 
     private fun setChecking() {
         binding.recheck.isEnabled = false
-        binding.usbStatus.text = getString(R.string.checking)
-        binding.wifiStatus.text = getString(R.string.checking)
-        setCardEnabled(binding.usbCard, false)
-        setCardEnabled(binding.wifiCard, false)
+        binding.usbState.text = getString(R.string.checking)
+        binding.wifiState.text = getString(R.string.checking)
+        binding.usbStatus.text = ""
+        binding.wifiStatus.text = ""
+        binding.usbCommand.visibility = View.GONE
+        setCardState(binding.usbCard, binding.usbState, false)
+        setCardState(binding.wifiCard, binding.wifiState, false)
     }
 
     private fun showUsb(server: Discovery.Server?) {
         binding.recheck.isEnabled = true
         if (server != null) {
-            binding.usbStatus.text = getString(R.string.usb_ready, server.name)
-            setCardEnabled(binding.usbCard, true)
+            binding.usbState.text = getString(R.string.usb_ready)
+            binding.usbStatus.text = getString(R.string.usb_ready_detail, server.name)
+            binding.usbCommand.visibility = View.GONE
         } else {
-            binding.usbStatus.text = getString(R.string.usb_missing)
-            setCardEnabled(binding.usbCard, false)
+            binding.usbState.text = getString(R.string.usb_missing)
+            binding.usbStatus.text = getString(R.string.usb_missing_detail)
+            // Il comando compare solo quando serve davvero: e' l'unica cosa da fare per attivare
+            // il cavo, e tenerlo sempre visibile lo trasformerebbe in rumore.
+            binding.usbCommand.visibility = View.VISIBLE
         }
+        setCardState(binding.usbCard, binding.usbState, server != null)
     }
 
     private fun showLan(server: Discovery.Server?) {
         if (server != null) {
-            binding.wifiStatus.text = getString(R.string.wifi_ready, server.name, server.hostAndPort)
-            setCardEnabled(binding.wifiCard, true)
+            binding.wifiState.text = getString(R.string.wifi_ready)
+            binding.wifiStatus.text =
+                getString(R.string.wifi_ready_detail, server.name, server.hostAndPort)
         } else {
-            binding.wifiStatus.text = getString(R.string.wifi_missing)
-            setCardEnabled(binding.wifiCard, false)
+            binding.wifiState.text = getString(R.string.wifi_missing)
+            binding.wifiStatus.text = getString(R.string.wifi_missing_detail)
         }
+        setCardState(binding.wifiCard, binding.wifiState, server != null)
     }
 
-    /** Una scheda inattiva resta leggibile ma smorzata: spiega ancora cosa fare per attivarla. */
-    private fun setCardEnabled(card: View, enabled: Boolean) {
-        card.isEnabled = enabled
-        card.isClickable = enabled
-        card.alpha = if (enabled) 1f else 0.55f
+    /**
+     * Un ingresso disponibile accende la barra ambra ed e' l'unico punto colorato della
+     * schermata; uno non disponibile resta grigio ma perfettamente leggibile, perche' e'
+     * proprio li' che si trova la spiegazione di cosa fare.
+     */
+    private fun setCardState(card: View, state: TextView, available: Boolean) {
+        card.isEnabled = available
+        card.isClickable = available
+        card.setBackgroundResource(
+            if (available) R.drawable.input_available else R.drawable.input_unavailable
+        )
+        state.setTextColor(getColor(if (available) R.color.signal else R.color.ink_faint))
     }
 
     private fun connectManual(target: Class<*>) {
@@ -129,5 +164,6 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_URL = "url"
         private const val PREFS = "monitorextender"
         private const val KEY_ADDRESS = "address"
+        private const val MAX_CONTENT_DP = 560
     }
 }

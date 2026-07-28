@@ -12,29 +12,35 @@
         android:layout_height="match_parent"
         android:layout_gravity="center" />
 
+    <!-- Misure sopra il video: stesso monospazio e stessa ambra della schermata di scelta. -->
     <TextView
         android:id="@+id/stats"
+        style="@style/Readout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
-        android:layout_margin="16dp"
-        android:background="#99000000"
-        android:padding="8dp"
-        android:textColor="#FFFFFF"
+        android:layout_margin="20dp"
+        android:background="@drawable/overlay_panel"
+        android:paddingStart="14dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="10dp"
+        android:textColor="@color/signal"
         android:textSize="12sp"
-        android:fontFamily="monospace"
-        android:visibility="gone"
-        tools:ignore="HardcodedText"
-        xmlns:tools="http://schemas.android.com/tools" />
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/status"
+        style="@style/Readout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:background="#CC000000"
-        android:padding="16dp"
-        android:textColor="#FFFFFF"
+        android:background="@drawable/overlay_panel"
+        android:paddingStart="24dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="18dp"
+        android:textColor="@color/ink"
         android:textSize="14sp"
         android:visibility="gone" />
 
