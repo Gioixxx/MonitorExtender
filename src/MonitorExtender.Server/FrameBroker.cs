@@ -39,6 +39,12 @@ public sealed class FrameBroker : IDisposable
     public int TargetWidth { get; private set; }
     public int TargetHeight { get; private set; }
 
+    /// <summary>Quanti client stanno guardando. Letto dall'icona vicino all'orologio.</summary>
+    public int Clients => Volatile.Read(ref _subscribers);
+
+    /// <summary>Fps dell'ultima finestra di misura; 0 finche' non ce n'e' una completa.</summary>
+    public double Fps { get; private set; }
+
     public void Start() => _thread.Start();
 
     public Frame? Latest => Volatile.Read(ref _latest);
@@ -78,6 +84,7 @@ public sealed class FrameBroker : IDisposable
                 if (Volatile.Read(ref _subscribers) == 0)
                 {
                     // Nessuno guarda: non ha senso bruciare CPU.
+                    Fps = 0;
                     report.Restart();
                     framesInWindow = msInWindow = bytesInWindow = 0;
                     nextDueMs = clock.ElapsedMilliseconds;
@@ -102,8 +109,8 @@ public sealed class FrameBroker : IDisposable
                         encoder = new JpegEncoder(updated.Quality);
                     }
                     current = updated;
-                    Console.WriteLine($"[capture] parametri aggiornati: {_settings} " +
-                                      $"({capturer.TargetWidth}x{capturer.TargetHeight})");
+                    Log.Write($"[capture] parametri aggiornati: {_settings} " +
+                              $"({capturer.TargetWidth}x{capturer.TargetHeight})");
                 }
 
                 stopwatch.Restart();
@@ -116,7 +123,7 @@ public sealed class FrameBroker : IDisposable
                 {
                     // Cattura fallita (cambio risoluzione, sessione bloccata, UAC in
                     // primo piano): si salta il frame invece di far cadere il server.
-                    Console.WriteLine($"[capture] frame saltato: {ex.Message}");
+                    Log.Write($"[capture] frame saltato: {ex.Message}");
                     token.WaitHandle.WaitOne(200);
                     continue;
                 }
@@ -133,7 +140,8 @@ public sealed class FrameBroker : IDisposable
                     var avgMs = msInWindow / (double)framesInWindow;
                     var fps = framesInWindow * 1000.0 / report.ElapsedMilliseconds;
                     var mbps = bytesInWindow * 8.0 / report.ElapsedMilliseconds / 1000.0;
-                    Console.WriteLine(
+                    Fps = fps;
+                    Log.Write(
                         $"[capture] {fps:F1} fps effettivi · {avgMs:F1} ms/frame · " +
                         $"{bytesInWindow / framesInWindow / 1024} KB/frame · {mbps:F1} Mbit/s · " +
                         $"{Volatile.Read(ref _subscribers)} client");

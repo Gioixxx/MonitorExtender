@@ -61,7 +61,7 @@ public sealed class DiscoveryResponder : IDisposable
             try
             {
                 await _udp.SendAsync(reply, request.RemoteEndPoint, token).ConfigureAwait(false);
-                Console.WriteLine($"[discovery] risposto a {request.RemoteEndPoint.Address}");
+                Log.Write($"[discovery] risposto a {request.RemoteEndPoint.Address}");
             }
             catch (Exception ex) when (ex is SocketException or ObjectDisposedException)
             {

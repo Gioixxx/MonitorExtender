@@ -68,6 +68,48 @@ Registro scelte tecniche con motivazioni.
 - **Alternative:** Java — nessun vantaggio tecnico qui, solo familiarità.
 - **Impatto:** progetto Android (Fase 3).
 
+### Avvio automatico: compito pianificato, non servizio Windows
+- **Data:** 2026-07-28
+- **Decisione:** `tools/autostart.ps1` registra un compito nell'Utilità di pianificazione che
+  parte **al login** dell'utente, con 20 s di ritardo, principal `Interactive`, senza privilegi
+  di amministratore. Il server è compilato `WinExe` (nessuna finestra) e si riaggancia alla
+  console del chiamante con `AttachConsole` quando serve (`--console`, `--probe`).
+- **Perché non un servizio Windows:** i servizi girano nella **sessione 0**, isolata dal desktop
+  dell'utente. Un servizio partirebbe regolarmente e catturerebbe frame neri. Non è una
+  preferenza: è un vincolo dell'architettura di Windows.
+- **Perché non la cartella Esecuzione automatica:** niente ritardo configurabile e nessuna
+  gestione dello stato. Il compito si installa, si interroga (`-Status`) e si rimuove (`-Remove`)
+  con lo stesso script.
+- **Impatto:** `tools/autostart.ps1`, `Program.cs`, `MonitorExtender.Server.csproj`, `Log.cs`.
+
+### Windows 11 nasconde le nuove icone di sistema
+- **Data:** 2026-07-28
+- **Constatazione:** l'icona compare nell'area **nascosta** dietro il chevron `^`, non nella
+  barra. È il comportamento predefinito di Windows 11 per ogni nuova icona e non è forzabile via
+  API: va trascinata fuori una volta, poi resta.
+- **Verificato** aprendo il riquadro delle icone nascoste **usando il controllo del mouse del
+  progetto stesso** (`/input`) e guardando il risultato con `/snapshot`.
+- **Conseguenza:** al primo avvio l'utente non vede nulla e pensa che il server non sia partito.
+  Va detto nella documentazione, non risolto nel codice.
+
+### Il registro va su file, non solo a schermo
+- **Data:** 2026-07-28
+- **Decisione:** `Log.Write` scrive su `%LOCALAPPDATA%\MonitorExtender\server.log` (rotazione a
+  1 MB, una generazione) **e** su console.
+- **Perché:** avviato dal compito pianificato il programma non ha console: senza file, qualunque
+  diagnosi diventerebbe impossibile. La proprietà si chiama `FilePath` e non `Path` perché
+  `Log.Path` nasconderebbe `System.IO.Path` in tutta la classe — errore preso in compilazione.
+
+### La sorveglianza del cavo elimina l'ultimo passaggio manuale
+- **Data:** 2026-07-28
+- **Decisione:** `UsbLinkWatcher` controlla periodicamente `adb devices` e `adb reverse --list`,
+  e ristabilisce l'inoltro appena un dispositivo autorizzato compare. Ritmo adattivo: 15 s con il
+  cavo collegato, 4 s in attesa, perché ogni controllo è un avvio di processo.
+- **Perché:** `adb reverse` non sopravvive allo scollegamento del cavo né al riavvio del PC.
+  Verificato: rimosso l'inoltro a mano e avviato il compito, il log segna
+  `[usb] inoltro ristabilito` e **due secondi dopo il tablet si è riconnesso da solo**.
+- **Se adb non è installato** la sorveglianza non parte e il resto funziona lo stesso.
+
 ### L'interfaccia è il selettore di ingresso di un monitor
 - **Data:** 2026-07-28
 - **Decisione:** la schermata di scelta è disegnata come il menu OSD di un monitor: fondo scuro

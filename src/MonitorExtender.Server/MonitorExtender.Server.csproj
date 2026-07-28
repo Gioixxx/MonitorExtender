@@ -1,17 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <!--
+      WinExe e non Exe: avviandosi al login non deve comparire una finestra nera. Quando serve
+      un terminale (opzioni "console" e "probe") il programma si riaggancia a quello del
+      chiamante con AttachConsole.
+    -->
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>MonitorExtender.Server</RootNamespace>
     <AssemblyName>MonitorExtender.Server</AssemblyName>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- La consapevolezza DPI la imposta ScreenCapturer a runtime, prima della cattura. -->
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="8.0.10" />
-  </ItemGroup>
 
 </Project>

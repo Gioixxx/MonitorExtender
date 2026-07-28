@@ -47,7 +47,7 @@ public sealed class MjpegServer : IDisposable
         }
         catch (HttpListenerException ex) when (ex.ErrorCode == 5) // ERROR_ACCESS_DENIED
         {
-            Console.WriteLine($"""
+            Log.Write($"""
                 [server] Bind su http://+:{_options.Port}/ negato da Windows (access denied).
                          Resta raggiungibile da questo PC e dal cavo USB (adb reverse), ma non
                          dalla rete. Per sbloccare anche la WiFi, una volta sola da terminale
@@ -117,9 +117,9 @@ public sealed class MjpegServer : IDisposable
                     break;
                 case "/stream":
                     ApplyQuerySettings(context.Request);
-                    Console.WriteLine($"[server] client connesso: {client}");
+                    Log.Write($"[server] client connesso: {client}");
                     await WriteStreamAsync(context, token).ConfigureAwait(false);
-                    Console.WriteLine($"[server] client disconnesso: {client}");
+                    Log.Write($"[server] client disconnesso: {client}");
                     break;
                 case "/info":
                     await WriteInfoAsync(context).ConfigureAwait(false);
@@ -135,11 +135,11 @@ public sealed class MjpegServer : IDisposable
         }
         catch (Exception ex) when (IsClientGone(ex))
         {
-            Console.WriteLine($"[server] client disconnesso: {client}");
+            Log.Write($"[server] client disconnesso: {client}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[server] errore su {path} ({client}): {ex.Message}");
+            Log.Write($"[server] errore su {path} ({client}): {ex.Message}");
             try { context.Response.Abort(); } catch { /* gia' andato */ }
         }
     }
@@ -210,7 +210,7 @@ public sealed class MjpegServer : IDisposable
                 fps: Read(query, "fps"),
                 quality: Read(query, "q", "quality")))
         {
-            Console.WriteLine($"[server] richiesti nuovi parametri: {_settings}");
+            Log.Write($"[server] richiesti nuovi parametri: {_settings}");
         }
     }
 
@@ -231,7 +231,7 @@ public sealed class MjpegServer : IDisposable
     {
         if (!context.Request.IsLocal)
         {
-            Console.WriteLine($"[input] rifiutato da {context.Request.RemoteEndPoint?.Address}: non e' loopback");
+            Log.Write($"[input] rifiutato da {context.Request.RemoteEndPoint?.Address}: non e' loopback");
             context.Response.StatusCode = 403;
             context.Response.Close();
             return;
@@ -272,14 +272,14 @@ public sealed class MjpegServer : IDisposable
                     InputInjector.Wheel(delta);
                     break;
                 default:
-                    Console.WriteLine($"[input] comando ignorato: \"{command}\"");
+                    Log.Write($"[input] comando ignorato: \"{command}\"");
                     break;
             }
         }
         catch (Exception ex)
         {
             // Un comando malformato non deve far cadere la connessione di controllo.
-            Console.WriteLine($"[input] errore su \"{command}\": {ex.Message}");
+            Log.Write($"[input] errore su \"{command}\": {ex.Message}");
         }
     }
 

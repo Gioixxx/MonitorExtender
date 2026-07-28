@@ -82,7 +82,7 @@ public static class InputInjector
             // Succede quando in primo piano c'e' una finestra elevata o il desktop sicuro:
             // non e' un errore da propagare, e' un limite del sistema.
             var error = Marshal.GetLastWin32Error();
-            Console.WriteLine($"[input] evento rifiutato da Windows (codice {error})");
+            Log.Write($"[input] evento rifiutato da Windows (codice {error})");
         }
     }
 
