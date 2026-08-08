@@ -1,7 +1,7 @@
 ---
 type: decisions
 tags: [memory, architecture]
-updated: 2026-07-27
+updated: 2026-08-05
 ---
 
 # Decisioni Architetturali
@@ -309,6 +309,51 @@ Registro scelte tecniche con motivazioni.
   le coroutine non c'è nulla in quelle versioni che serva.
 - **Alternative:** installare le platform 37 dall'SDK Manager — rimandato a quando servirà davvero.
 - **Impatto:** `android/gradle/libs.versions.toml`, `android/app/build.gradle.kts`.
+
+### Desktop Duplication funziona: era davvero solo il monitor mancante
+- **Data:** 2026-08-04
+- **Esito:** con l'HP E202 collegato via HDMI, `IDXGIOutput1::DuplicateOutput` non restituisce
+  più `E_ACCESSDENIED`. `--compare` (40 giri, 1600×900 → 1280×720, qualità 60): **GDI mediana
+  28.7 ms, DXGI Duplication mediana 7.2 ms — 4.0× più veloce**, tetto teorico 140 fps contro 35.
+  Conferma piena l'ipotesi del 2026-07-28 ([[decisions]] "Desktop Duplication non è
+  utilizzabile su questa macchina"): non era il dock NVIDIA né il processo `Mind`, era
+  semplicemente l'assenza di un'uscita video reale.
+- **Contesto della misura:** rifatta subito dopo aver scoperto e risolto il bug di
+  `ScreenCapturer` che cachava la risoluzione a 1024×768 (vedi [[tech-debt]],
+  "ScreenCapturer non si accorge se il monitor cambia a runtime") — il monitor era collegato da
+  prima ma il processo server andava riavviato per accorgersene. La cattura GDI dal vivo nel
+  log del server (17-22 ms/frame a 1600×900, 1 client) è coerente con la mediana di 28.7 ms
+  misurata qui a 1280×720 con un client in più attivo.
+- **Nota metodologica:** misurato con il server MJPEG **fermo** (stessa cautela della sessione
+  precedente: due catture concorrenti dello stesso schermo si ostacolano a vicenda).
+- **Conseguenza:** la Fase 5 (Desktop Duplication + H.264) non è più bloccata da un vincolo
+  hardware esterno. Resta un progetto a sé (SPS/PPS, MediaCodec lato Android), ma la parte
+  server ha ora un guadagno di velocità dimostrato e misurato, non solo teorico.
+- **Impatto:** `DesktopDuplicationCapturer.cs` (già esistente per `--compare`), `Program.cs`.
+
+### Il cursore va disegnato a mano: GDI non lo cattura mai
+- **Data:** 2026-08-05
+- **Decisione:** `ScreenCapturer.Capture()` chiama `GetCursorInfo` + `GetIconInfo` +
+  `DrawIconEx` su `_fullGraphics.GetHdc()` subito dopo `CopyFromScreen`, prima del ridimensiona-
+  mento, così il cursore scala insieme al resto del frame invece di essere disegnato a parte.
+- **Perché:** segnalato dall'utente — "non si vede il puntatore, sia via cavo che WiFi". Non è
+  mai stato un bug introdotto di recente: `CopyFromScreen` **non ha mai incluso il cursore**, è
+  il compositore di Windows a disegnarlo separatamente sopra il framebuffer. Passato
+  inosservato finché non si è iniziato a comandare il mouse dal tablet ([[decisions]] "Controllo
+  del PC dal touchscreen") — senza vederlo, sapere dove si sta per cliccare è impossibile.
+- **Dettaglio tecnico:** la posizione di `GetCursorInfo` è l'angolo dell'icona, non il punto
+  cliccabile — va corretta con l'hotspot restituito da `GetIconInfo` (`xHotspot`/`yHotspot`),
+  altrimenti il cursore disegnato risulta spostato rispetto al vero punto di click.
+  `GetIconInfo` alloca due bitmap GDI (`hbmMask`/`hbmColor`) che vanno liberate con
+  `DeleteObject` a ogni frame, altrimenti perdita di handle GDI a 20-30 fps.
+- **Verificato** con `--probe`: cursore spostato via `Cursor.Position` a una coordinata nota,
+  ritrovato nel JPEG catturato esattamente lì (scalato). Confermato anche sul tablet.
+- **Alternative:** disegnare il cursore lato Android leggendo `m x y` dal proprio stato locale —
+  scartato: funzionerebbe solo per gli input generati dal tablet stesso, non per il cursore
+  reale del PC quando qualcun altro lo muove (mouse fisico, altra sessione remota).
+- **Impatto:** `ScreenCapturer.cs`. Non si applica a `DuplicationCapturer.cs` (DXGI Desktop
+  Duplication esclude il cursore hardware allo stesso modo e richiederebbe la propria API,
+  `IDXGIOutputDuplication::GetFramePointerShape` — da fare se/quando la Fase 5 sostituisce GDI).
 
 ### DPI awareness esplicita nel capturer
 - **Data:** 2026-07-27
