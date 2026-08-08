@@ -74,6 +74,7 @@ public sealed class ScreenCapturer : IScreenSource
     {
         _watch.Restart();
         _fullGraphics.CopyFromScreen(0, 0, 0, 0, new Size(SourceWidth, SourceHeight), CopyPixelOperation.SourceCopy);
+        CursorOverlay.Draw(_fullGraphics);
         LastCopyMs = _watch.Elapsed.TotalMilliseconds;
 
         if (TargetWidth == SourceWidth && TargetHeight == SourceHeight)

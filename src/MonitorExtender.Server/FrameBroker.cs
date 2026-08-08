@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
@@ -66,7 +67,7 @@ public sealed class FrameBroker : IDisposable
         var fineTimer = TimeBeginPeriod(1) == 0;
 
         var current = _settings.Read();
-        var capturer = new ScreenCapturer(current.Scale);
+        var capturer = ScreenSourceFactory.Create(current.Scale);
         var encoder = new JpegEncoder(current.Quality);
         UpdateDimensions(capturer);
 
@@ -75,7 +76,20 @@ public sealed class FrameBroker : IDisposable
         var report = Stopwatch.StartNew();
         var clock = Stopwatch.StartNew();
         var nextDueMs = 0L;
+        var lastRebuildMs = 0L;
         long frameId = 0, framesInWindow = 0, msInWindow = 0, bytesInWindow = 0;
+
+        // Cadenza ancorata a scadenze assolute: sommare l'attesa dopo il lavoro farebbe
+        // accumulare il ritardo di ogni frame su tutti i successivi.
+        void Pace()
+        {
+            nextDueMs += current.FrameIntervalMs;
+            var now = clock.ElapsedMilliseconds;
+            if (nextDueMs <= now)
+                nextDueMs = now; // in ritardo cronico: si riparte da adesso, senza rincorrere
+            else
+                token.WaitHandle.WaitOne((int)(nextDueMs - now));
+        }
 
         try
         {
@@ -100,7 +114,7 @@ public sealed class FrameBroker : IDisposable
                     if (updated.Scale != current.Scale)
                     {
                         capturer.Dispose();
-                        capturer = new ScreenCapturer(updated.Scale);
+                        capturer = ScreenSourceFactory.Create(updated.Scale);
                         UpdateDimensions(capturer);
                     }
                     if (updated.Quality != current.Quality)
@@ -114,20 +128,53 @@ public sealed class FrameBroker : IDisposable
                 }
 
                 stopwatch.Restart();
-                byte[] jpeg;
+                Bitmap? bitmap;
                 try
                 {
-                    jpeg = encoder.Encode(capturer.Capture());
+                    bitmap = capturer.Capture(current.FrameIntervalMs);
                 }
                 catch (Exception ex)
                 {
-                    // Cattura fallita (cambio risoluzione, sessione bloccata, UAC in
-                    // primo piano): si salta il frame invece di far cadere il server.
+                    // Cattura fallita (cambio risoluzione, sessione bloccata, UAC in primo
+                    // piano, o la duplicazione DXGI persa per cambio al desktop sicuro/blocco
+                    // sessione/reset driver): si ricostruisce il capturer, ma non a ogni giro -
+                    // al massimo ogni 3s, altrimenti un fallimento persistente lo terrebbe
+                    // occupato in un loop di ricostruzioni costose invece che aspettare e basta.
+                    // ScreenSourceFactory riprova DXGI e ripiega su GDI se serve, da sola.
                     Log.Write($"[capture] frame saltato: {ex.Message}");
+                    var now = clock.ElapsedMilliseconds;
+                    if (now - lastRebuildMs >= 3000)
+                    {
+                        lastRebuildMs = now;
+                        capturer.Dispose();
+                        capturer = ScreenSourceFactory.Create(current.Scale);
+                        UpdateDimensions(capturer);
+                    }
                     token.WaitHandle.WaitOne(200);
                     continue;
                 }
                 stopwatch.Stop();
+
+                if (bitmap == null)
+                {
+                    // Solo DXGI puo' restituirlo: nessun cambiamento sullo schermo entro il
+                    // timeout, non e' un errore. Si evita di ricodificare e ripubblicare lo
+                    // stesso frame di prima - il client resta comunque fermo sull'ultimo.
+                    Pace();
+                    continue;
+                }
+
+                byte[] jpeg;
+                try
+                {
+                    jpeg = encoder.Encode(bitmap);
+                }
+                catch (Exception ex)
+                {
+                    Log.Write($"[capture] frame saltato: {ex.Message}");
+                    token.WaitHandle.WaitOne(200);
+                    continue;
+                }
 
                 Publish(new Frame(jpeg, ++frameId));
 
@@ -149,14 +196,7 @@ public sealed class FrameBroker : IDisposable
                     framesInWindow = msInWindow = bytesInWindow = 0;
                 }
 
-                // Cadenza ancorata a scadenze assolute: sommare l'attesa dopo il lavoro
-                // farebbe accumulare il ritardo di ogni frame su tutti i successivi.
-                nextDueMs += current.FrameIntervalMs;
-                var now = clock.ElapsedMilliseconds;
-                if (nextDueMs <= now)
-                    nextDueMs = now; // in ritardo cronico: si riparte da adesso, senza rincorrere
-                else
-                    token.WaitHandle.WaitOne((int)(nextDueMs - now));
+                Pace();
             }
         }
         finally
@@ -167,7 +207,7 @@ public sealed class FrameBroker : IDisposable
         }
     }
 
-    private void UpdateDimensions(ScreenCapturer capturer)
+    private void UpdateDimensions(IScreenSource capturer)
     {
         SourceWidth = capturer.SourceWidth;
         SourceHeight = capturer.SourceHeight;

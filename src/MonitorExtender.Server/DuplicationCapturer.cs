@@ -30,6 +30,7 @@ public sealed class DuplicationCapturer : IScreenSource
     private readonly ID3D11Texture2D _staging;
 
     private readonly Bitmap _full;
+    private readonly Graphics _fullGraphics;
     private readonly Bitmap _scaled;
     private readonly Graphics _scaledGraphics;
 
@@ -87,7 +88,10 @@ public sealed class DuplicationCapturer : IScreenSource
             MiscFlags = ResourceOptionFlags.None,
         });
 
+        // Format32bppRgb (senza alpha), a differenza del Format32bppArgb di ScreenCapturer:
+        // DrawIconEx e' un blit GDI puro sull'HDC, non risente dell'assenza del canale alpha.
         _full = new Bitmap(SourceWidth, SourceHeight, PixelFormat.Format32bppRgb);
+        _fullGraphics = Graphics.FromImage(_full);
 
         _scaled = new Bitmap(TargetWidth, TargetHeight, PixelFormat.Format24bppRgb);
         _scaledGraphics = Graphics.FromImage(_scaled);
@@ -185,6 +189,10 @@ public sealed class DuplicationCapturer : IScreenSource
             _duplication.ReleaseFrame();
         }
 
+        // La duplicazione esclude il cursore hardware dal frame: va disegnato a mano, come in
+        // ScreenCapturer, altrimenti chi comanda il mouse dal tablet non vede dove sta cliccando.
+        CursorOverlay.Draw(_fullGraphics);
+
         if (TargetWidth == SourceWidth && TargetHeight == SourceHeight) return _full;
 
         _scaledGraphics.DrawImage(_full, 0, 0, TargetWidth, TargetHeight);
@@ -222,6 +230,7 @@ public sealed class DuplicationCapturer : IScreenSource
     {
         _scaledGraphics.Dispose();
         _scaled.Dispose();
+        _fullGraphics.Dispose();
         _full.Dispose();
         _staging.Dispose();
         _duplication.Dispose();
