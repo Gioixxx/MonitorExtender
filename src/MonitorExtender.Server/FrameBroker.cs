@@ -67,7 +67,7 @@ public sealed class FrameBroker : IDisposable
         var fineTimer = TimeBeginPeriod(1) == 0;
 
         var current = _settings.Read();
-        var capturer = ScreenSourceFactory.Create(current.Scale);
+        var capturer = ScreenSourceFactory.Create(current.Scale, current.PreferGdi);
         var encoder = new JpegEncoder(current.Quality);
         UpdateDimensions(capturer);
 
@@ -111,10 +111,10 @@ public sealed class FrameBroker : IDisposable
                     // Un client ha chiesto parametri diversi: si ricostruiscono cattura ed
                     // encoder. Costa un paio di millisecondi e capita solo su richiesta.
                     var updated = _settings.Read();
-                    if (updated.Scale != current.Scale)
+                    if (updated.Scale != current.Scale || updated.PreferGdi != current.PreferGdi)
                     {
                         capturer.Dispose();
-                        capturer = ScreenSourceFactory.Create(updated.Scale);
+                        capturer = ScreenSourceFactory.Create(updated.Scale, updated.PreferGdi);
                         UpdateDimensions(capturer);
                     }
                     if (updated.Quality != current.Quality)
@@ -147,7 +147,7 @@ public sealed class FrameBroker : IDisposable
                     {
                         lastRebuildMs = now;
                         capturer.Dispose();
-                        capturer = ScreenSourceFactory.Create(current.Scale);
+                        capturer = ScreenSourceFactory.Create(current.Scale, current.PreferGdi);
                         UpdateDimensions(capturer);
                     }
                     token.WaitHandle.WaitOne(200);

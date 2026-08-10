@@ -12,8 +12,14 @@ namespace MonitorExtender.Server;
 [SupportedOSPlatform("windows")]
 internal static class ScreenSourceFactory
 {
-    public static IScreenSource Create(int scale)
+    public static IScreenSource Create(int scale, bool preferGdi = false)
     {
+        if (preferGdi)
+        {
+            Log.Write("[capture] sorgente: GDI (modalita' compatibilita' forzata)");
+            return new ScreenCapturer(scale);
+        }
+
         try
         {
             var dxgi = new DuplicationCapturer(scale);

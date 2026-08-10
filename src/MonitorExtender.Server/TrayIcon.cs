@@ -21,21 +21,24 @@ public sealed class TrayIcon : IDisposable
     private static readonly Color Idle = Color.FromArgb(0x8B, 0x95, 0xA3);
 
     private readonly StreamOptions _options;
+    private readonly LiveSettings _settings;
     private readonly FrameBroker _broker;
     private readonly UsbLinkWatcher? _usb;
     private readonly Action _onExit;
 
     private readonly NotifyIcon _icon;
     private readonly ToolStripMenuItem _status;
+    private readonly ToolStripMenuItem _compatibility;
     private readonly System.Windows.Forms.Timer _refresh;
     private readonly Icon _activeIcon;
     private readonly Icon _idleIcon;
 
     private bool _showingActive;
 
-    public TrayIcon(StreamOptions options, FrameBroker broker, UsbLinkWatcher? usb, Action onExit)
+    public TrayIcon(StreamOptions options, LiveSettings settings, FrameBroker broker, UsbLinkWatcher? usb, Action onExit)
     {
         _options = options;
+        _settings = settings;
         _broker = broker;
         _usb = usb;
         _onExit = onExit;
@@ -45,12 +48,23 @@ public sealed class TrayIcon : IDisposable
 
         _status = new ToolStripMenuItem("MonitorExtender") { Enabled = false };
 
+        // Interruttore manuale: Desktop Duplication a volte non cattura le finestre WPF
+        // renderizzate in hardware (restano invisibili o nere nello stream). Passare a GDI
+        // da qui risolve il singolo caso senza toccare la chiave di registro che disattiva
+        // l'accelerazione hardware per tutti i programmi WPF del sistema.
+        _compatibility = new ToolStripMenuItem("Modalita' compatibilita' (disattiva Desktop Duplication)")
+        {
+            Checked = _settings.PreferGdi,
+        };
+        _compatibility.Click += (_, _) => ToggleCompatibility();
+
         var menu = new ContextMenuStrip();
         menu.Items.Add(_status);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Apri la pagina di prova", null, (_, _) => OpenBrowser());
         menu.Items.Add("Copia l'indirizzo", null, (_, _) => CopyAddress());
         if (_usb != null) menu.Items.Add("Riattiva il cavo USB", null, (_, _) => _usb.LinkNow());
+        menu.Items.Add(_compatibility);
         menu.Items.Add("Apri il registro", null, (_, _) => OpenLog());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Esci", null, (_, _) => _onExit());
@@ -111,6 +125,12 @@ public sealed class TrayIcon : IDisposable
         {
             Log.Write($"[tray] impossibile aprire {target}: {ex.Message}");
         }
+    }
+
+    private void ToggleCompatibility()
+    {
+        _settings.Apply(scale: null, fps: null, quality: null, preferGdi: !_settings.PreferGdi);
+        _compatibility.Checked = _settings.PreferGdi;
     }
 
     private void CopyAddress()

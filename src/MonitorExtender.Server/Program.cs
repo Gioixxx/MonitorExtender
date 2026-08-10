@@ -96,7 +96,7 @@ internal static class Program
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            using var tray = new TrayIcon(options, broker, usb, Application.Exit);
+            using var tray = new TrayIcon(options, settings, broker, usb, Application.Exit);
             Application.Run();
 
             shutdown.Cancel();

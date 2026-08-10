@@ -19,11 +19,20 @@ public sealed class LiveSettings
         Scale = options.Scale;
         Fps = options.Fps;
         Quality = options.Quality;
+        PreferGdi = false;
     }
 
     public int Scale { get; private set; }
     public int Fps { get; private set; }
     public int Quality { get; private set; }
+
+    /// <summary>
+    /// Forza la cattura GDI anche quando Desktop Duplication sarebbe disponibile. Serve come
+    /// interruttore manuale per i contenuti WPF renderizzati in hardware che DXGI a volte non
+    /// cattura (finestra invisibile o nera nello stream) — senza dover toccare la chiave di
+    /// registro che disattiva l'accelerazione hardware per *tutti* i programmi WPF del sistema.
+    /// </summary>
+    public bool PreferGdi { get; private set; }
 
     /// <summary>Cambia a ogni modifica: il ciclo di cattura lo confronta per sapere se ricostruirsi.</summary>
     public int Version => Volatile.Read(ref _version);
@@ -32,31 +41,35 @@ public sealed class LiveSettings
 
     public Snapshot Read()
     {
-        lock (_lock) return new Snapshot(Scale, Fps, Quality, Version);
+        lock (_lock) return new Snapshot(Scale, Fps, Quality, PreferGdi, Version);
     }
 
     /// <summary>Applica i valori indicati (null = invariato). Restituisce true se qualcosa e' cambiato.</summary>
-    public bool Apply(int? scale, int? fps, int? quality)
+    public bool Apply(int? scale, int? fps, int? quality, bool? preferGdi = null)
     {
         lock (_lock)
         {
             var newScale = scale.HasValue ? Math.Clamp(scale.Value, 120, 2160) : Scale;
             var newFps = fps.HasValue ? Math.Clamp(fps.Value, 1, 60) : Fps;
             var newQuality = quality.HasValue ? Math.Clamp(quality.Value, 1, 100) : Quality;
+            var newPreferGdi = preferGdi ?? PreferGdi;
 
-            if (newScale == Scale && newFps == Fps && newQuality == Quality) return false;
+            if (newScale == Scale && newFps == Fps && newQuality == Quality && newPreferGdi == PreferGdi)
+                return false;
 
             Scale = newScale;
             Fps = newFps;
             Quality = newQuality;
+            PreferGdi = newPreferGdi;
             Interlocked.Increment(ref _version);
             return true;
         }
     }
 
-    public override string ToString() => $"scale={Scale}p fps={Fps} quality={Quality}";
+    public override string ToString() =>
+        $"scale={Scale}p fps={Fps} quality={Quality}{(PreferGdi ? " gdi" : "")}";
 
-    public readonly record struct Snapshot(int Scale, int Fps, int Quality, int Version)
+    public readonly record struct Snapshot(int Scale, int Fps, int Quality, bool PreferGdi, int Version)
     {
         public int FrameIntervalMs => Math.Max(1, 1000 / Fps);
     }
