@@ -25,3 +25,9 @@ dist/
 
 # Backup generati dagli hook della memoria
 *.bak
+
+# Chiave di firma dell'app Android: il template (android/keystore.properties.example)
+# la vuole qui, un livello sopra android/. android/.gitignore copre *.jks solo al suo
+# interno, non qui alla radice: senza questa riga il file sarebbe tracciabile da git.
+*.jks
+*.keystore
