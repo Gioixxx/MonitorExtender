@@ -1,7 +1,7 @@
 ---
 type: decisions
 tags: [memory, architecture]
-updated: 2026-08-05
+updated: 2026-08-10
 ---
 
 # Decisioni Architetturali
@@ -362,3 +362,89 @@ Registro scelte tecniche con motivazioni.
 - **Perché:** senza, su display con scaling ≠ 100% Windows riporta una risoluzione virtuale più
   piccola del vero e si cattura un'immagine sfocata e tagliata.
 - **Impatto:** `ScreenCapturer.cs`.
+
+### Interruttore manuale GDI/DXGI invece di automatizzare la chiave di registro
+- **Data:** 2026-08-10
+- **Decisione:** `LiveSettings.PreferGdi` (bool, non persistito) forza `ScreenSourceFactory` a
+  usare GDI anche quando Desktop Duplication sarebbe disponibile. Esposto come voce di menu
+  checkable "Modalità compatibilità" nell'icona di stato (`TrayIcon`), non da riga di comando.
+- **Perché:** segnalato dall'utente — un programma WPF renderizzato in hardware a volte non
+  compare nello stream mirrorato da Desktop Duplication (finestra invisibile o nera), finora
+  risolto a mano con `reg add HKCU\Software\Microsoft\Avalon.Graphics DisableHWAcceleration`.
+  Quel workaround disattiva l'accelerazione hardware per *tutti* i programmi WPF del sistema ed
+  è invisibile finché non lo si va a cercare. Un interruttore nel programma che già gestisce la
+  cattura risolve lo stesso problema senza toccare impostazioni di sistema estranee al progetto.
+- **Alternative:** rilevare automaticamente il caso e passare a GDI da soli — scartato: non c'è
+  un segnale affidabile per "questo frame dovrebbe contenere una finestra WPF invisibile" senza
+  ispezionare il contenuto catturato, molto più complesso del problema che risolve.
+- **Impatto:** `LiveSettings.cs`, `ScreenSourceFactory.cs`, `FrameBroker.cs`, `TrayIcon.cs`,
+  `Program.cs`. Non persiste tra riavvii, stesso comportamento di `Scale`/`Fps`/`Quality`.
+
+### Installer Windows senza privilegi di amministratore
+- **Data:** 2026-08-10
+- **Decisione:** `installer/MonitorExtender.iss` (Inno Setup) installa in `{localappdata}`
+  con `PrivilegesRequired=lowest`, non in Program Files. La configurazione di rete e l'avvio
+  automatico sono caselle opzionali nel wizard, non passi obbligati; "considera questa rete
+  come attendibile" (`-TrustNetwork`) è l'unica non spuntata di default.
+- **Perché:** `tools/autostart.ps1` gira già senza privilegi per scelta architetturale (un
+  servizio Windows non può catturare lo schermo, vedi sopra), e `tools/setup-network.ps1` si
+  autoeleva da sé con un proprio prompt UAC solo quando serve. Se l'installer stesso chiedesse
+  admin per installare in Program Files, l'utente vedrebbe due prompt UAC scollegati per la
+  stessa installazione. Rendere `-TrustNetwork` opt-in rispecchia lo stesso script: cambia la
+  categoria di rete di Windows, una scelta che l'utente deve fare consapevolmente.
+- **Alternative:** installer elevato in Program Files — scartato per il doppio UAC. Rete e
+  autostart obbligatori senza checkbox — scartato: un installer che configura il firewall senza
+  chiedere è esattamente il tipo di comportamento silenzioso che il progetto ha evitato altrove
+  (vedi "Le due vie di collegamento vanno mostrate separate").
+- **Impatto:** `installer/MonitorExtender.iss`, `tools/build-installer.ps1`. Provato con
+  install/uninstall reali: file, task pianificato, urlacl e regole firewall tutti verificati
+  presenti dopo l'installazione e assenti dopo la disinstallazione.
+
+### GitHub Pages come landing page, non un secondo repository
+- **Data:** 2026-08-10
+- **Decisione:** `docs/index.md` + `docs/_config.yml` (tema Jekyll incluso, `cayman`) servono
+  sia da pagina di atterraggio con link di download sia da host per `docs/privacy.md`, sullo
+  stesso repository.
+- **Perché:** GitHub Pages serviva comunque per dare un URL pubblico alla privacy policy
+  (richiesta dal form data-safety di Play Console). Usarla anche come landing page costa un
+  file in più; un repository separato costerebbe una seconda fonte da tenere allineata a ogni
+  release, esattamente il problema che si voleva evitare. Il link di download punta a
+  `/releases/latest`, mai a un asset versionato, così non invecchia a ogni nuova release.
+- **Alternative:** repository dedicato solo al link di download, proposto dall'utente — scartato
+  per il costo di manutenzione doppia a fronte di nessun vantaggio reale (GitHub Release dà già
+  hosting binario versionato e gratuito).
+- **Impatto:** `docs/index.md`, `docs/_config.yml`.
+
+### Icona dell'exe generata da codice, non importata da un file
+- **Data:** 2026-08-10
+- **Decisione:** `tools/build-icon.ps1` disegna lo stesso monitor stilizzato di
+  `TrayIcon.BuildIcon` (cornice `#171D24`, schermo `#F2A33C`) a 16/32/48/256px e lo impacchetta
+  in un `.ico` vero (voci PNG, non DIB — l'unico modo di includere la taglia 256 nel formato
+  classico). `MonitorExtender.Server.csproj` la incorpora con `<ApplicationIcon>`.
+- **Perché:** stessa logica già in uso per gli asset del Play Store (`tools/store-assets.ps1`):
+  un'icona disegnata da codice resta coerente con i colori dell'app e riproducibile, invece di
+  un binario da rigenerare a mano ogni volta che la palette cambia. `<ApplicationIcon>` la
+  incorpora davvero nell'exe (Explorer, taskbar, scorciatoie), non solo nel wizard
+  dell'installer — verificato con `Icon.ExtractAssociatedIcon` dopo la build.
+- **Alternative:** icona statica esportata una volta da un editor grafico — scartato per lo
+  stesso motivo degli altri asset generati da codice nel progetto.
+- **Impatto:** `tools/build-icon.ps1`, `MonitorExtender.Server.csproj`,
+  `installer/MonitorExtender.iss` (`SetupIconFile`). La release v1.0.0 già pubblicata è stata
+  ricompilata e i suoi asset sostituiti per includerla.
+
+### Rigenerare il wrapper Gradle mancante invece di aggirare il problema in CI
+- **Data:** 2026-08-10
+- **Decisione:** `android/gradlew` (script Unix, mai committato — solo `gradlew.bat` esisteva)
+  rigenerato con `gradlew.bat wrapper --gradle-version 9.6.1`, stessa versione e checksum già
+  in uso, committato con bit eseguibile (`100755`).
+- **Perché:** il job "App Android" in CI (`ubuntu-latest`) falliva con "No such file or
+  directory" perché lo sviluppo è sempre stato solo su Windows: nessuno aveva mai avuto bisogno
+  dello script Unix in locale, e il fallimento in CI era passato inosservato. Rigenerarlo con lo
+  stesso strumento che genera `gradlew.bat` garantisce che i due script restino sincronizzati.
+- **Alternative:** far girare il job Android su `windows-latest` invece di `ubuntu-latest` —
+  scartato: sposta il problema (non testa più l'ambiente Unix in cui gira davvero la maggior
+  parte delle CI Android) invece di risolverlo.
+- **Impatto:** `android/gradlew` (nuovo), `android/gradlew.bat`,
+  `android/gradle/wrapper/gradle-wrapper.properties`. Verificato con lo stesso comando della
+  pipeline (`./gradlew testDebugUnitTest assembleDebug`) in locale prima del push, poi CI
+  riverificata verde su GitHub Actions.
