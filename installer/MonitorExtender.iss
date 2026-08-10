@@ -36,6 +36,7 @@ OutputBaseFilename=MonitorExtenderSetup-{#MyAppVersion}
 Compression=lzma2
 SolidCompression=yes
 LicenseFile=..\LICENSE
+SetupIconFile=..\src\MonitorExtender.Server\icon.ico
 ; Gestisce da solo l'eseguibile bloccato da un'istanza gia' in esecuzione, sia
 ; nell'installazione/aggiornamento sia nella disinstallazione.
 CloseApplications=yes

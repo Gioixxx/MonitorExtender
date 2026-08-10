@@ -18,6 +18,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- La consapevolezza DPI la imposta ScreenCapturer a runtime, prima della cattura. -->
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <!-- Generata da tools\build-icon.ps1: stesso monitor stilizzato dell'icona di stato. -->
+    <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
