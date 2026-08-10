@@ -1,19 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Sagoma di un monitor, centrata nella zona sicura dell'icona adattiva. -->
+<!-- Sagoma di un monitor, centrata nella zona sicura dell'icona adattiva. Stessi colori del
+     resto dell'app (TrayIcon.BuildIcon, store-assets.ps1, icon.ico del server): cornice scura,
+     schermo ambra. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
+    <!-- Cornice del monitor -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M30,36h48a4,4 0 0 1 4,4v26a4,4 0 0 1 -4,4h-48a4,4 0 0 1 -4,-4v-26a4,4 0 0 1 4,-4zM32,42v22h44v-22z" />
+        android:fillColor="#171D24"
+        android:pathData="M26,28h56v37h-56z" />
+
+    <!-- Schermo -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M46,72h16v4h-16z" />
+        android:fillColor="#F2A33C"
+        android:pathData="M30,32h48v29h-48z" />
+
+    <!-- Piedistallo -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M40,76h28v4h-28z" />
+        android:fillColor="#171D24"
+        android:pathData="M50,65h8v6h-8z" />
+    <path
+        android:fillColor="#171D24"
+        android:pathData="M43,71h22v3h-22z" />
 
 </vector>
